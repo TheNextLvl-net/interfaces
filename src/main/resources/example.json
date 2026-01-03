@@ -1,0 +1,57 @@
+{
+  "title": "super.cool.translated.title",
+  "pattern": [
+    "# # # # #",
+    "  a b c  ",
+    "# a b c #",
+    "  a b c  ",
+    "# # # # #"
+  ],
+  "#": {
+    "item": "minecraft:gray_stained_glass_pane",
+    "hide_tooltip": true
+  },
+  "a": {
+    "item": "minecraft:diamond",
+    "amount": "row*2",
+    "click_actions": [
+      {
+        "permission": "example.diamond",
+        "run_console_command": "give <player> diamond",
+        "broadcast": "<player> > Yay! I've got a diamond!"
+      },
+      {
+        "no_permission": "example.diamond",
+        "send_message": "You don't have permission to get a diamond!"
+      }
+    ]
+  },
+  "b": {
+    "item": "minecraft:emerald",
+    "amount": "index",
+    "click_actions": [
+      {
+        "play_sound": {
+          "sound": "minecraft:ui_click",
+          "category": "master",
+          "volume": 1,
+          "pitch": 1,
+          "seed": 12345
+        }
+      }
+    ]
+  },
+  "c": {
+    "item": "minecraft:netherite_ingot",
+    "amount": "row+column",
+    "click_actions": [
+      {
+        "run_command": "say Hello! My name is <player>"
+      }
+    ]
+  },
+  "on_open": [
+  ],
+  "on_close": [
+  ]
+}
