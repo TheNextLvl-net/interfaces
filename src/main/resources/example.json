@@ -22,7 +22,7 @@
       },
       {
         "no_permission": "example.diamond",
-        "send_message": "You don't have permission to get a diamond!"
+        "send_message": "<red>You don't have the permission to get a diamond!<red>"
       }
     ]
   },
