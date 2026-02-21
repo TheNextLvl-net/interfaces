@@ -3,7 +3,7 @@ package net.thenextlvl.interfaces;
 import java.util.Locale;
 
 final class Arithmetics {
-    public static String compile(String expression, RenderContext context) {
+    public static String compile(final String expression, final RenderContext context) {
         return expression
                 .replace(" ", "")
                 .toLowerCase(Locale.ROOT)
@@ -13,14 +13,14 @@ final class Arithmetics {
                 .replace("slot", String.valueOf(context.slot()));
     }
 
-    public static double evaluate(String compiled) {
+    public static double evaluate(final String compiled) {
         return parseExpression(compiled, new int[]{0});
     }
 
-    private static double parseExpression(String expr, int[] pos) {
+    private static double parseExpression(final String expr, final int[] pos) {
         double result = parseTerm(expr, pos);
         while (pos[0] < expr.length()) {
-            char op = expr.charAt(pos[0]);
+            final char op = expr.charAt(pos[0]);
             if (op == '+') {
                 pos[0]++;
                 result += parseTerm(expr, pos);
@@ -34,10 +34,10 @@ final class Arithmetics {
         return result;
     }
 
-    private static double parseTerm(String expr, int[] pos) {
+    private static double parseTerm(final String expr, final int[] pos) {
         double result = parseFactor(expr, pos);
         while (pos[0] < expr.length()) {
-            char op = expr.charAt(pos[0]);
+            final char op = expr.charAt(pos[0]);
             if (op == '*') {
                 pos[0]++;
                 result *= parseFactor(expr, pos);
@@ -51,18 +51,18 @@ final class Arithmetics {
         return result;
     }
 
-    private static double parseFactor(String expr, int[] pos) {
+    private static double parseFactor(final String expr, final int[] pos) {
         if (pos[0] < expr.length() && expr.charAt(pos[0]) == '(') {
             pos[0]++; // skip '('
-            double result = parseExpression(expr, pos);
+            final double result = parseExpression(expr, pos);
             pos[0]++; // skip ')'
             return result;
         }
         return parseNumber(expr, pos);
     }
 
-    private static double parseNumber(String expr, int[] pos) {
-        int start = pos[0];
+    private static double parseNumber(final String expr, final int[] pos) {
+        final int start = pos[0];
         while (pos[0] < expr.length() && (Character.isDigit(expr.charAt(pos[0])) || expr.charAt(pos[0]) == '.')) {
             pos[0]++;
         }

@@ -48,11 +48,11 @@ public sealed interface Interface permits SimpleInterface {
     }
 
     @Contract(value = "_ -> new", pure = true)
-    static Interface read(JsonObject object) {
-        return SimpleInterface.read(object);
+    static Interface read(final JsonObject object) {
+        return InterfaceReader.read(object);
     }
 
-    static void registerHandler(Plugin plugin) {
+    static void registerHandler(final Plugin plugin) {
         plugin.getServer().getPluginManager().registerEvents(InterfaceHandler.INSTANCE, plugin);
     }
 

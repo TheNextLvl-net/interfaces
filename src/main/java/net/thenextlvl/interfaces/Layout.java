@@ -37,7 +37,7 @@ sealed public interface Layout permits SimpleLayout {
     }
 
     @Contract(value = "_ -> new", pure = true)
-    static Layout of(String... pattern) {
+    static Layout of(final String... pattern) {
         return new SimpleLayout(pattern);
     }
 

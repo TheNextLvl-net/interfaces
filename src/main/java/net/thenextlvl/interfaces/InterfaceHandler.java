@@ -21,43 +21,43 @@ final class InterfaceHandler implements Listener {
     private InterfaceHandler() {
     }
 
-    public Map.@Nullable Entry<InventoryView, SimpleInterface> getView(Player player) {
+    public Map.@Nullable Entry<InventoryView, SimpleInterface> getView(final Player player) {
         return views.get(player);
     }
 
-    public void removeView(Player player) {
+    public void removeView(final Player player) {
         views.remove(player);
     }
 
-    public void setView(Player player, InventoryView view, SimpleInterface interface_) {
+    public void setView(final Player player, final InventoryView view, final SimpleInterface interface_) {
         views.put(player, Map.entry(view, interface_));
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onOpen(InventoryOpenEvent event) {
-        if (!(event.getPlayer() instanceof Player player)) return;
-        var view = getView(player);
+    public void onOpen(final InventoryOpenEvent event) {
+        if (!(event.getPlayer() instanceof final Player player)) return;
+        final var view = getView(player);
         if (view == null || !event.getView().equals(view.getKey())) return;
 
-        var consumer = view.getValue().onOpen();
+        final var consumer = view.getValue().onOpen();
         if (consumer != null) consumer.accept(player);
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
-    public void onClose(InventoryCloseEvent event) {
-        if (!(event.getPlayer() instanceof Player player)) return;
-        var view = getView(player);
+    public void onClose(final InventoryCloseEvent event) {
+        if (!(event.getPlayer() instanceof final Player player)) return;
+        final var view = getView(player);
         if (view == null || !event.getView().equals(view.getKey())) return;
 
-        var consumer = view.getValue().onClose();
+        final var consumer = view.getValue().onClose();
         if (consumer != null) consumer.accept(player, event.getReason());
         removeView(player);
     }
     
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onInventoryClick(InventoryClickEvent event) {
-        if (!(event.getWhoClicked() instanceof Player player)) return;
-        var view = getView(player);
+    public void onInventoryClick(final InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof final Player player)) return;
+        final var view = getView(player);
         if (view == null || !event.getView().equals(view.getKey())) return;
 
         view.getValue().handleClick(player, event);

@@ -19,7 +19,7 @@ public interface ClickAction {
     void click(Player player, ClickType type, int index);
 
     @Contract(value = "_ -> new", pure = true)
-    default ClickAction andThen(ClickAction other) {
+    default ClickAction andThen(final ClickAction other) {
         return (player, type, index) -> {
             click(player, type, index);
             other.click(player, type, index);
@@ -27,17 +27,17 @@ public interface ClickAction {
     }
 
     @Contract(value = "_ -> new", pure = true)
-    static ClickAction of(BiConsumer<Player, ClickType> action) {
+    static ClickAction of(final BiConsumer<Player, ClickType> action) {
         return (player, type, index) -> action.accept(player, type);
     }
 
     @Contract(value = "_ -> new", pure = true)
-    static ClickAction of(Consumer<Player> action) {
+    static ClickAction of(final Consumer<Player> action) {
         return (player, type, index) -> action.accept(player);
     }
 
     @Contract(value = "_ -> new", pure = true)
-    static ClickAction of(Runnable action) {
+    static ClickAction of(final Runnable action) {
         return (player, type, index) -> action.run();
     }
 }

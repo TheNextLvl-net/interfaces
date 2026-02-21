@@ -12,12 +12,12 @@ final class SimpleLayout implements Layout {
     private final String pattern;
     private final Map<Character, Renderer> items;
 
-    private SimpleLayout(String pattern, Map<Character, Renderer> items) {
+    private SimpleLayout(final String pattern, final Map<Character, Renderer> items) {
         this.pattern = pattern;
         this.items = Map.copyOf(items);
     }
 
-    public SimpleLayout(String... pattern) {
+    public SimpleLayout(final String... pattern) {
         this.pattern = String.join("\n", pattern);
         this.items = Map.of();
     }
@@ -33,17 +33,17 @@ final class SimpleLayout implements Layout {
     }
 
     @Override
-    public @Nullable Renderer renderer(char c) {
+    public @Nullable Renderer renderer(final char c) {
         return items.get(c);
     }
 
     @Override
-    public void forEachMask(BiConsumer<Character, Renderer> action) {
+    public void forEachMask(final BiConsumer<Character, Renderer> action) {
         items.forEach(action);
     }
 
     @Override
-    public boolean containsMask(char c) {
+    public boolean containsMask(final char c) {
         return items.containsKey(c);
     }
 
@@ -67,19 +67,19 @@ final class SimpleLayout implements Layout {
         private final Map<Character, Renderer> items = new HashMap<>();
 
         @Override
-        public Layout.Builder pattern(String... pattern) {
+        public Layout.Builder pattern(final String... pattern) {
             this.pattern = String.join("\n", pattern);
             return this;
         }
 
         @Override
-        public Layout.Builder mask(char c, ItemStack item) {
+        public Layout.Builder mask(final char c, final ItemStack item) {
             this.items.put(c, context -> item);
             return this;
         }
 
         @Override
-        public Layout.Builder mask(char c, Renderer renderer) {
+        public Layout.Builder mask(final char c, final Renderer renderer) {
             this.items.put(c, renderer);
             return this;
         }

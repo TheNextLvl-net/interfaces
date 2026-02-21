@@ -1,14 +1,7 @@
 package net.thenextlvl.interfaces;
 
 import com.google.common.base.Preconditions;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-import org.bukkit.Bukkit;
-import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
@@ -23,11 +16,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import static net.thenextlvl.interfaces.Arithmetics.compile;
-import static net.thenextlvl.interfaces.Arithmetics.evaluate;
 
 final class SimpleInterface implements Interface {
     private final @Nullable BiConsumer<Player, InventoryCloseEvent.Reason> onClose;
@@ -41,10 +30,10 @@ final class SimpleInterface implements Interface {
     private final @Nullable Item[] items;
 
     private SimpleInterface(
-            MenuType type, @Nullable Function<Player, Component> title, Layout layout,
-            @Nullable Consumer<Player> onOpen,
-            @Nullable BiConsumer<Player, InventoryCloseEvent.Reason> onClose,
-            Map<Character, ActionItem> slots
+            final MenuType type, @Nullable final Function<Player, Component> title, final Layout layout,
+            @Nullable final Consumer<Player> onOpen,
+            @Nullable final BiConsumer<Player, InventoryCloseEvent.Reason> onClose,
+            final Map<Character, ActionItem> slots
     ) {
         this.type = type;
         this.title = title;
@@ -57,11 +46,11 @@ final class SimpleInterface implements Interface {
         var row = 1;
         var slot = 0;
 
-        var chars = layout.pattern().toCharArray();
+        final var chars = layout.pattern().toCharArray();
         this.items = new Item[chars.length];
-        var indices = new HashMap<Character, Integer>();
+        final var indices = new HashMap<Character, Integer>();
 
-        for (var c : chars) {
+        for (final var c : chars) {
             if (c == '\n') {
                 column = 1;
                 row++;
@@ -69,13 +58,13 @@ final class SimpleInterface implements Interface {
             }
             indices.compute(c, (k, v) -> v == null ? 0 : v + 1);
 
-            var actionItem = slots.get(c);
-            var item = actionItem != null
+            final var actionItem = slots.get(c);
+            final var item = actionItem != null
                     ? actionItem.renderer()
                     : layout.renderer(c);
 
             if (item != null) {
-                var action = actionItem != null ? actionItem.action() : null;
+                final var action = actionItem != null ? actionItem.action() : null;
                 this.items[slot] = new Item(item, action, indices.get(c), row, column, slot);
             } else {
                 this.items[slot] = null;
@@ -86,117 +75,13 @@ final class SimpleInterface implements Interface {
         }
     }
 
-    public static Interface read(JsonObject object) {
-        Preconditions.checkState(object.has("pattern"), "Missing pattern (json array)");
-
-        var title = object.has("title") ? Component.text(object.get("title").getAsString()) : null;
-        var pattern = object.getAsJsonArray("pattern").asList().stream()
-                .map(JsonElement::getAsString)
-                .toArray(String[]::new);
-
-        var builder = new Builder()
-                .title(title);
-        var layout = Layout.builder()
-                .pattern(pattern);
-
-        for (var entry : object.entrySet()) {
-            if (entry.getKey().length() != 1) continue;
-            var jsonObject = entry.getValue().getAsJsonObject();
-            var renderer = readItemRenderer(jsonObject);
-            var actions = jsonObject.get("click_actions") instanceof JsonArray array ? readActions(array) : null;
-            if (actions == null) layout.mask(entry.getKey().charAt(0), renderer);
-            else builder.slot(entry.getKey().charAt(0), new ActionItem(renderer, ClickAction.of(actions)));
-        }
-
-        var onOpen = object.get("on_open") instanceof JsonArray array ? readActions(array) : null;
-        var onClose = object.get("on_close") instanceof JsonArray array ? readActions(array) : null;
-
-        return builder
-                .layout(layout.build())
-                .onOpen(onOpen)
-                .onClose(onClose != null ? (player, reason) -> onClose.accept(player) : null)
-                .build();
-    }
-
-    private static Renderer readItemRenderer(JsonObject object) {
-        Preconditions.checkState(object.has("item"), "Missing item");
-        var item = object.get("item").getAsString();
-        var amount = object.get("amount") instanceof JsonPrimitive primitive ? primitive.getAsString() : null;
-        var itemStack = Bukkit.getItemFactory().createItemStack(item);
-        return amount != null ? context -> {
-            itemStack.setAmount((int) evaluate(compile(amount, context)));
-            return itemStack;
-        } : context -> itemStack;
-    }
-
-    private static @Nullable Consumer<Player> readActions(JsonArray array) {
-        Consumer<Player> action = null;
-        for (var element : array) {
-            var read = element instanceof JsonObject object ? readFullAction(object) : null;
-            if (read != null) action = andOr(action, read);
-        }
-        return action;
-    }
-
-    private static @Nullable Consumer<Player> readFullAction(JsonObject object) {
-        var permission = object.get("permission") instanceof JsonPrimitive primitive ? primitive.getAsString() : null;
-        var noPermission = object.get("no_permission") instanceof JsonPrimitive primitive ? primitive.getAsString() : null;
-
-        Predicate<Player> condition = player -> {
-            if (permission != null && !player.hasPermission(permission)) return false;
-            return noPermission == null || !player.hasPermission(noPermission);
-        };
-
-        var action = readAction(object);
-        return action == null ? null : player -> {
-            if (condition.test(player)) action.accept(player);
-        };
-    }
-
-    private static @Nullable Consumer<Player> readAction(JsonObject object) {
-        Consumer<Player> action = null;
-
-        if (object.get("run_console_command") instanceof JsonPrimitive primitive) {
-            var command = primitive.getAsString();
-            action = player -> player.getServer().dispatchCommand(player.getServer().getConsoleSender(), command.replace("<player>", player.getName()));
-        }
-        if (object.get("run_command") instanceof JsonPrimitive primitive) {
-            var command = primitive.getAsString();
-            action = andOr(action, player -> player.performCommand(command.replace("<player>", player.getName())));
-        }
-        if (object.get("broadcast") instanceof JsonPrimitive primitive) {
-            var message = primitive.getAsString();
-            action = andOr(action, player -> player.getServer().sendRichMessage(message, Placeholder.parsed("player", player.getName())));
-        }
-        if (object.get("send_message") instanceof JsonPrimitive primitive) {
-            var message = primitive.getAsString();
-            action = andOr(action, player -> player.sendRichMessage(message, Placeholder.parsed("player", player.getName())));
-        }
-        if (object.get("play_sound") instanceof JsonObject soundObject) {
-            Preconditions.checkState(soundObject.has("sound"), "Missing sound (key)");
-
-            var sound = soundObject.get("sound").getAsString();
-            var volume = soundObject.get("volume") instanceof JsonPrimitive primitive ? primitive.getAsFloat() : 1f;
-            var pitch = soundObject.get("pitch") instanceof JsonPrimitive primitive ? primitive.getAsFloat() : 1f;
-            var category = soundObject.get("category") instanceof JsonPrimitive primitive
-                    ? SoundCategory.valueOf(primitive.getAsString().toUpperCase()) : SoundCategory.MASTER;
-            var seed = soundObject.get("seed") instanceof JsonPrimitive primitive ? primitive.getAsLong() : 0;
-            action = andOr(action, player -> player.playSound(player.getLocation(), sound, category, volume, pitch, seed));
-        }
-        return action;
-    }
-
-    private static Consumer<Player> andOr(@Nullable Consumer<Player> action, Consumer<Player> other) {
-        return action != null ? action.andThen(other) : other;
-    }
-
     @Override
     public Layout layout() {
         return layout;
     }
 
     @Override
-    public @Nullable Component title(Player player) {
+    public @Nullable Component title(final Player player) {
         return title == null ? null : title.apply(player);
     }
 
@@ -216,15 +101,15 @@ final class SimpleInterface implements Interface {
     }
 
     @Override
-    public void open(Player player) {
-        var view = type.create(player, title(player));
-        var size = view.getTopInventory().getSize();
+    public void open(final Player player) {
+        final var view = type.create(player, title(player));
+        final var size = view.getTopInventory().getSize();
 
-        for (var item : items) {
+        for (final var item : items) {
             if (item == null) continue;
-            var slot = item.slot();
+            final var slot = item.slot();
             Preconditions.checkPositionIndex(slot, size, "Inventory slot");
-            var context = new SimpleRenderContext(player, item.index(), item.row(), item.column(), slot);
+            final var context = new SimpleRenderContext(player, item.index(), item.row(), item.column(), slot);
             view.setItem(slot, item.renderer().render(context));
         }
 
@@ -234,7 +119,7 @@ final class SimpleInterface implements Interface {
 
     @Override
     public Interface.Builder toBuilder() {
-        var builder = new Builder();
+        final var builder = new Builder();
         builder.slots.putAll(slots);
         return builder.type(type)
                 .title(title)
@@ -243,11 +128,11 @@ final class SimpleInterface implements Interface {
                 .onClose(onClose);
     }
 
-    public void handleClick(Player player, InventoryClickEvent event) {
+    public void handleClick(final Player player, final InventoryClickEvent event) {
         if (!event.getView().getTopInventory().equals(event.getClickedInventory())) return;
-        var slot = event.getSlot();
+        final var slot = event.getSlot();
         if (slot < 0 || slot >= items.length) return;
-        var item = items[slot];
+        final var item = items[slot];
         if (item == null || item.action() == null) return;
         item.action().click(player, event.getClick(), event.getHotbarButton());
     }
@@ -266,77 +151,77 @@ final class SimpleInterface implements Interface {
         private final Map<Character, ActionItem> slots = new HashMap<>();
 
         @Override
-        public Interface.Builder type(InventoryType type) throws IllegalArgumentException {
+        public Interface.Builder type(final InventoryType type) throws IllegalArgumentException {
             Preconditions.checkArgument(type.getMenuType() != null, "Inventory type %s is not creatable", type);
             this.type = type.getMenuType();
             return this;
         }
 
         @Override
-        public Interface.Builder type(MenuType type) throws IllegalArgumentException {
+        public Interface.Builder type(final MenuType type) throws IllegalArgumentException {
             this.type = type;
             return this;
         }
 
         @Override
-        public Interface.Builder title(@Nullable Component title) {
+        public Interface.Builder title(@Nullable final Component title) {
             return title(title == null ? null : player -> title);
         }
 
         @Override
-        public Interface.Builder title(@Nullable Function<Player, Component> title) {
+        public Interface.Builder title(@Nullable final Function<Player, Component> title) {
             this.title = title;
             return this;
         }
 
         @Override
         @SuppressWarnings("MagicConstant")
-        public Interface.Builder layout(Layout layout) {
+        public Interface.Builder layout(final Layout layout) {
             this.layout = layout;
             if (type != null) return this;
-            var pattern = layout.pattern().split("\n");
+            final var pattern = layout.pattern().split("\n");
             return slots(pattern.length == 1 && pattern[0].length() == 5 ? 5 : pattern.length * 9);
         }
 
         @Override
-        public Interface.Builder slot(char c, ActionItem actionItem) {
+        public Interface.Builder slot(final char c, final ActionItem actionItem) {
             this.slots.put(c, actionItem);
             return this;
         }
 
         @Override
-        public Interface.Builder slot(char c, ItemStack item, ClickAction action) {
-            var clone = item.clone();
+        public Interface.Builder slot(final char c, final ItemStack item, final ClickAction action) {
+            final var clone = item.clone();
             this.slots.put(c, new ActionItem(context -> clone, action));
             return this;
         }
 
         @Override
-        public Interface.Builder slot(char c, Renderer renderer, ClickAction action) {
+        public Interface.Builder slot(final char c, final Renderer renderer, final ClickAction action) {
             this.slots.put(c, new ActionItem(renderer, action));
             return this;
         }
 
         @Override
-        public Interface.Builder onOpen(@Nullable Consumer<Player> handler) {
+        public Interface.Builder onOpen(@Nullable final Consumer<Player> handler) {
             this.onOpen = handler;
             return this;
         }
 
         @Override
-        public Interface.Builder onClose(@Nullable BiConsumer<Player, InventoryCloseEvent.Reason> handler) {
+        public Interface.Builder onClose(@Nullable final BiConsumer<Player, InventoryCloseEvent.Reason> handler) {
             this.onClose = handler;
             return this;
         }
 
         @Override
         @SuppressWarnings("MagicConstant")
-        public Interface.Builder rows(int rows) throws IllegalArgumentException {
+        public Interface.Builder rows(final int rows) throws IllegalArgumentException {
             return slots(rows * 9);
         }
 
         @Override
-        public Interface.Builder slots(int slots) throws IllegalArgumentException {
+        public Interface.Builder slots(final int slots) throws IllegalArgumentException {
             this.type = switch (slots) {
                 case 9 -> MenuType.GENERIC_9X1;
                 case 18 -> MenuType.GENERIC_9X2;
@@ -353,7 +238,7 @@ final class SimpleInterface implements Interface {
         @Override
         public Interface build() throws IllegalArgumentException {
             Preconditions.checkArgument(type != null, "Menu type not set");
-            var dimensions = this.dimensions.get(type);
+            final var dimensions = this.dimensions.get(type);
             Preconditions.checkArgument(dimensions != null, "Unsupported menu type: %s", type);
             if (!layout.pattern().isEmpty() || layout.hasMasks() || !slots.isEmpty()) {
                 validatePattern(dimensions.getKey(), dimensions.getValue());
@@ -386,8 +271,8 @@ final class SimpleInterface implements Interface {
                 Map.entry(MenuType.STONECUTTER, Map.entry(1, 2))
         );
 
-        private void validatePattern(int rows, int cols) throws IllegalArgumentException {
-            var pattern = layout.pattern().split("\n");
+        private void validatePattern(final int rows, final int cols) throws IllegalArgumentException {
+            final var pattern = layout.pattern().split("\n");
             // validate that the pattern has the correct number of rows
             Preconditions.checkArgument(pattern.length == rows, "Invalid number of rows in pattern: found %s but expected %s", pattern.length, rows);
             for (var i = 0; i < pattern.length; i++) {
@@ -396,7 +281,7 @@ final class SimpleInterface implements Interface {
             }
 
             // create a set of all characters in the pattern (excluding newlines)
-            var patternChars = layout.pattern().chars()
+            final var patternChars = layout.pattern().chars()
                     .mapToObj(c -> (char) c)
                     .filter(c -> c != '\n')
                     .collect(Collectors.toSet());
@@ -407,7 +292,7 @@ final class SimpleInterface implements Interface {
             });
 
             // create a set of all masks and slots
-            var maskChars = new HashSet<>(layout.masks().keySet());
+            final var maskChars = new HashSet<>(layout.masks().keySet());
             maskChars.addAll(slots.keySet());
 
             // check that all masks and slots are defined in the pattern
