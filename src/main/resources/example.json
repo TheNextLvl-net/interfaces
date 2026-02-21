@@ -46,6 +46,7 @@
     "amount": "row+column",
     "click_actions": [
       {
+        "click_type": "any_left",
         "run_command": "say Hello! My name is <player>"
       }
     ]
@@ -53,5 +54,13 @@
   "on_open": [
   ],
   "on_close": [
+    {
+      "reason": "open_new",
+      "send_message": "A new inventory was opened!"
+    },
+    {
+      "reason": "player",
+      "send_message": "You closed the inventory!"
+    }
   ]
 }
