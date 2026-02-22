@@ -1,7 +1,8 @@
 package net.thenextlvl.interfaces;
 
-import com.google.gson.JsonObject;
+import com.google.common.base.Preconditions;
 import net.kyori.adventure.text.Component;
+import net.thenextlvl.interfaces.reader.InterfaceReader;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryCloseEvent;
@@ -15,6 +16,7 @@ import org.jetbrains.annotations.Range;
 import org.jetbrains.annotations.Unmodifiable;
 import org.jspecify.annotations.Nullable;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -45,11 +47,6 @@ public sealed interface Interface permits SimpleInterface {
     @Contract(value = " -> new", pure = true)
     static Builder builder() {
         return new SimpleInterface.Builder();
-    }
-
-    @Contract(value = "_ -> new", pure = true)
-    static Interface read(final JsonObject object) {
-        return InterfaceReader.read(object);
     }
 
     static void registerHandler(final Plugin plugin) {
@@ -103,6 +100,17 @@ public sealed interface Interface permits SimpleInterface {
 
     // todo: remove
     static Interface example() {
+
+        try {
+            final var example = Interface.class.getResourceAsStream("example.json");
+            Preconditions.checkState(example != null, "Missing example.json");
+            final var read = InterfaceReader.reader()
+                    .read(example);
+            System.out.println(read);
+        } catch (final IOException e) {
+            e.printStackTrace(System.err);
+        }
+
         return Interface.builder()
                 .title(Component.text("Example"))
                 .layout(Layout.builder()

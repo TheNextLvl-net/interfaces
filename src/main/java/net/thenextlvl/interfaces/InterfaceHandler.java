@@ -53,7 +53,7 @@ final class InterfaceHandler implements Listener {
         if (consumer != null) consumer.accept(player, event.getReason());
         removeView(player);
     }
-    
+
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onInventoryClick(final InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof final Player player)) return;

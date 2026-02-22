@@ -12,11 +12,11 @@ sealed public interface Layout permits SimpleLayout {
     @Unmodifiable
     @Contract(value = " -> new", pure = true)
     Map<Character, Renderer> masks();
-    
+
     @Nullable
     @Contract(pure = true)
     Renderer renderer(char c);
-    
+
     void forEachMask(BiConsumer<Character, Renderer> action);
 
     @Contract(pure = true)

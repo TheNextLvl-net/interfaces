@@ -1,4 +1,6 @@
-package net.thenextlvl.interfaces;
+package net.thenextlvl.interfaces.reader;
+
+import net.thenextlvl.interfaces.RenderContext;
 
 import java.util.Locale;
 
