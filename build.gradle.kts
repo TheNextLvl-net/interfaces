@@ -26,6 +26,9 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter")
     testImplementation(platform("org.junit:junit-bom:6.1.0-SNAPSHOT"))
+    testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    testImplementation("org.mockito:mockito-junit-jupiter:5.18.0")
+    testImplementation("org.mockito:mockito-inline:5.2.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
