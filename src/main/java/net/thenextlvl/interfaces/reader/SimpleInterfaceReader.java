@@ -5,7 +5,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
+import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.thenextlvl.interfaces.ActionItem;
 import net.thenextlvl.interfaces.ClickAction;
 import net.thenextlvl.interfaces.Interface;
@@ -20,7 +23,6 @@ import net.thenextlvl.interfaces.reader.action.SoundActionParser;
 import net.thenextlvl.interfaces.reader.condition.NoPermissionConditionParser;
 import net.thenextlvl.interfaces.reader.condition.PermissionConditionParser;
 import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryCloseEvent.Reason;
 import org.jspecify.annotations.Nullable;
 
@@ -56,6 +58,11 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
             new RegisteredConditionParser<>("permission", JsonPrimitive.class, PermissionConditionParser.INSTANCE),
             new RegisteredConditionParser<>("no_permission", JsonPrimitive.class, NoPermissionConditionParser.INSTANCE)
     ));
+    private TextRenderer renderer = (text, audience, resolvers) -> {
+        var builder = TagResolver.builder()
+                .resolvers(resolvers);
+        return MiniMessage.miniMessage().deserialize(text, builder.build());
+    };
 
     private record RegisteredClickActionParser<T extends JsonElement>(
             String id,
@@ -97,6 +104,17 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     }
 
     @Override
+    public InterfaceReader textRenderer(final TextRenderer renderer) {
+        this.renderer = renderer;
+        return this;
+    }
+
+    @Override
+    public Component renderText(final Audience audience, final String text, final TagResolver... resolvers) {
+        return renderer.renderText(text, audience, resolvers);
+    }
+
+    @Override
     public Interface read(final Path path) throws IOException {
         try (final var reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
             return read(reader);
@@ -125,8 +143,7 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
 
         get(object, "title", JsonPrimitive.class)
                 .map(JsonPrimitive::getAsString)
-                .map(Component::text)
-                .ifPresent(builder::title);
+                .ifPresent(title -> builder.title(player -> renderText(player, title)));
 
         final var layout = Layout.builder()
                 .pattern(pattern);

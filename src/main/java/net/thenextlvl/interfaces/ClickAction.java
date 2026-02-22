@@ -26,17 +26,17 @@ public interface ClickAction {
 
     @Contract(value = "_ -> new", pure = true)
     static ClickAction of(final BiConsumer<Player, ClickType> action) {
-        return context -> action.accept(context.getPlayer(), context.getClickType());
+        return context -> action.accept(context.player(), context.clickType());
     }
 
     @Contract(value = "_ -> new", pure = true)
     static ClickAction of(final TriConsumer<Player, ClickType, Integer> action) {
-        return context -> action.accept(context.getPlayer(), context.getClickType(), context.getSlot());
+        return context -> action.accept(context.player(), context.clickType(), context.slot());
     }
 
     @Contract(value = "_ -> new", pure = true)
     static ClickAction of(final Consumer<Player> action) {
-        return context -> action.accept(context.getPlayer());
+        return context -> action.accept(context.player());
     }
 
     @Contract(value = "_ -> new", pure = true)

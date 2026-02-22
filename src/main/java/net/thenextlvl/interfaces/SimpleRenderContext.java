@@ -26,22 +26,22 @@ non-sealed class SimpleRenderContext extends SimpleInterface.Session implements 
     }
 
     @Override
-    public int getIndex() {
+    public int index() {
         return index;
     }
 
     @Override
-    public int getRow() {
+    public int row() {
         return row;
     }
 
     @Override
-    public int getColumn() {
+    public int column() {
         return column;
     }
 
     @Override
-    public int getSlot() {
+    public int slot() {
         return slot;
     }
 }

@@ -17,7 +17,7 @@ public final class MessageActionParser implements ActionParser<JsonPrimitive> {
     @Override
     public Consumer<InterfaceSession> parse(final JsonPrimitive primitive, final ParserContext context) {
         final var message = primitive.getAsString();
-        return session -> session.getPlayer().sendRichMessage(message,
-                Placeholder.parsed("player", session.getPlayer().getName()));
+        return session -> session.player().sendRichMessage(message,
+                Placeholder.parsed("player", session.player().getName()));
     }
 }

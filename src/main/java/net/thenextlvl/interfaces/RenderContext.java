@@ -4,14 +4,14 @@ import org.jetbrains.annotations.Contract;
 
 public sealed interface RenderContext extends InterfaceSession permits ClickContext, SimpleRenderContext {
     @Contract(pure = true)
-    int getIndex();
+    int index();
 
     @Contract(pure = true)
-    int getRow();
+    int row();
 
     @Contract(pure = true)
-    int getColumn();
+    int column();
 
     @Contract(pure = true)
-    int getSlot();
+    int slot();
 }

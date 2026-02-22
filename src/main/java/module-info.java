@@ -13,5 +13,4 @@ module net.thenextlvl.interfaces {
 
     requires static org.jetbrains.annotations;
     requires static org.jspecify;
-    requires java.desktop;
 }

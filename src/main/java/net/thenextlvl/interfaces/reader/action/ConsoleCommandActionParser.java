@@ -16,9 +16,9 @@ public final class ConsoleCommandActionParser implements ActionParser<JsonPrimit
     @Override
     public Consumer<InterfaceSession> parse(final JsonPrimitive primitive, final ParserContext context) {
         final var command = primitive.getAsString();
-        return session -> session.getPlayer().getServer().dispatchCommand(
-                session.getPlayer().getServer().getConsoleSender(),
-                command.replace("<player>", session.getPlayer().getName())
+        return session -> session.player().getServer().dispatchCommand(
+                session.player().getServer().getConsoleSender(),
+                command.replace("<player>", session.player().getName())
         );
     }
 }

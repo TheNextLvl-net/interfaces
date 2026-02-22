@@ -16,6 +16,6 @@ public final class PermissionConditionParser implements ConditionParser<JsonPrim
     @Override
     public Predicate<InterfaceSession> parse(final JsonPrimitive element, final ParserContext context) {
         final var permission = element.getAsString();
-        return session -> session.getPlayer().hasPermission(permission);
+        return session -> session.player().hasPermission(permission);
     }
 }

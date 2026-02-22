@@ -22,7 +22,7 @@ final class SimpleClickContext extends SimpleRenderContext implements ClickConte
     }
 
     @Override
-    public ClickType getClickType() {
+    public ClickType clickType() {
         return clickType;
     }
 }

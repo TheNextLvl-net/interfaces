@@ -1,6 +1,9 @@
 package net.thenextlvl.interfaces.reader;
 
 import com.google.gson.JsonObject;
+import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.thenextlvl.interfaces.ClickAction;
 import net.thenextlvl.interfaces.InterfaceSession;
 import org.jetbrains.annotations.Contract;
@@ -21,4 +24,7 @@ public interface ParserContext {
     // parses all conditions
     @Contract(pure = true)
     Optional<Predicate<InterfaceSession>> parseConditions(JsonObject object);
+
+    @Contract(value = "_, _, _ -> new", pure = true)
+    Component renderText(Audience audience, String text, TagResolver... resolvers);
 }

@@ -114,11 +114,11 @@ public sealed interface Interface permits SimpleInterface {
                                 "# abcba #",
                                 "-       -",
                                 "#-#-x-#-#")
-                        .mask('a', context -> ItemStack.of(Material.IRON_INGOT, context.getSlot()))
-                        .mask('b', context -> ItemStack.of(Material.GOLD_INGOT, context.getIndex() + 1))
-                        .mask('c', context -> ItemStack.of(Material.DIAMOND, context.getRow()))
-                        .mask('#', context -> ItemStack.of(Material.BLACK_STAINED_GLASS_PANE, context.getIndex() + 1))
-                        .mask(' ', context -> ItemStack.of(Material.LIGHT_GRAY_STAINED_GLASS_PANE, context.getColumn()))
+                        .mask('a', context -> ItemStack.of(Material.IRON_INGOT, context.slot()))
+                        .mask('b', context -> ItemStack.of(Material.GOLD_INGOT, context.index() + 1))
+                        .mask('c', context -> ItemStack.of(Material.DIAMOND, context.row()))
+                        .mask('#', context -> ItemStack.of(Material.BLACK_STAINED_GLASS_PANE, context.index() + 1))
+                        .mask(' ', context -> ItemStack.of(Material.LIGHT_GRAY_STAINED_GLASS_PANE, context.column()))
                         .mask('-', ItemStack.of(Material.RED_STAINED_GLASS_PANE))
                         .build())
                 .rows(5)
@@ -126,8 +126,8 @@ public sealed interface Interface permits SimpleInterface {
                     System.out.println(player.getName() + " clicked the barrier");
                     player.closeInventory();
                 }))
-                .onOpen(context -> System.out.println(context.getPlayer().getName() + " opened the inventory"))
-                .onClose((context, reason) -> System.out.println(context.getPlayer().getName() + " closed the inventory with reason " + reason))
+                .onOpen(context -> System.out.println(context.player().getName() + " opened the inventory"))
+                .onClose((context, reason) -> System.out.println(context.player().getName() + " closed the inventory with reason " + reason))
                 .build();
     }
 }

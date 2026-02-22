@@ -24,6 +24,6 @@ public final class SoundActionParser implements ActionParser<JsonObject> {
                 ? SoundCategory.valueOf(primitive.getAsString().toUpperCase()) : SoundCategory.MASTER;
         final var seed = object.get("seed") instanceof final JsonPrimitive primitive ? primitive.getAsLong() : 0;
 
-        return session -> session.getPlayer().playSound(session.getPlayer().getLocation(), sound, category, volume, pitch, seed);
+        return session -> session.player().playSound(session.player().getLocation(), sound, category, volume, pitch, seed);
     }
 }

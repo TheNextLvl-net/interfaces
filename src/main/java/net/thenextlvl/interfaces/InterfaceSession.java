@@ -8,15 +8,15 @@ public sealed interface InterfaceSession permits RenderContext, SimpleInterface.
     Interface getInterface();
 
     @Contract(pure = true)
-    Player getPlayer();
+    Player player();
 
     @Contract(pure = true)
-    InventoryView getView();
+    InventoryView view();
 
     @Contract(pure = true)
-    <T> T getState(String key, Class<T> type, T fallback);
+    <T> T state(String key, Class<T> type, T fallback);
 
-    void setState(String key, Object value);
+    void state(String key, Object value);
 
     void refresh();
 

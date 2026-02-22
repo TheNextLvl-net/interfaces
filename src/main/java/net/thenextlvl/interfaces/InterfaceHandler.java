@@ -36,7 +36,7 @@ final class InterfaceHandler implements Listener {
     public void onOpen(final InventoryOpenEvent event) {
         if (!(event.getPlayer() instanceof final Player player)) return;
         final var session = getSession(player);
-        if (session == null || !event.getView().equals(session.getView())) return;
+        if (session == null || !event.getView().equals(session.view())) return;
 
         final var consumer = session.getInterface().onOpen();
         if (consumer != null) consumer.accept(session);
@@ -46,7 +46,7 @@ final class InterfaceHandler implements Listener {
     public void onClose(final InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof final Player player)) return;
         final var session = getSession(player);
-        if (session == null || !event.getView().equals(session.getView())) return;
+        if (session == null || !event.getView().equals(session.view())) return;
 
         final var consumer = session.getInterface().onClose();
         if (consumer != null) consumer.accept(session, event.getReason());
@@ -57,7 +57,7 @@ final class InterfaceHandler implements Listener {
     public void onInventoryClick(final InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof final Player player)) return;
         final var session = getSession(player);
-        if (session == null || !event.getView().equals(session.getView())) return;
+        if (session == null || !event.getView().equals(session.view())) return;
 
         session.getInterface().handleClick(session, event);
         event.setCancelled(true);

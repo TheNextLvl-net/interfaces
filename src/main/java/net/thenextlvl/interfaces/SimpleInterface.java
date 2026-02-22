@@ -131,7 +131,7 @@ final class SimpleInterface implements Interface {
         final var item = items[slot];
         if (item == null || item.action() == null) return;
         final var context = new SimpleClickContext(
-                session.getPlayer(),
+                session.player(),
                 event.getView(),
                 this,
                 item.index(),
@@ -173,23 +173,23 @@ final class SimpleInterface implements Interface {
         }
 
         @Override
-        public Player getPlayer() {
+        public Player player() {
             return player;
         }
 
         @Override
-        public InventoryView getView() {
+        public InventoryView view() {
             return view;
         }
 
         @Override
-        public <T> T getState(final String key, final Class<T> type, final T fallback) {
+        public <T> T state(final String key, final Class<T> type, final T fallback) {
             final var value = state.get(key);
             return type.isInstance(value) ? type.cast(value) : fallback;
         }
 
         @Override
-        public void setState(final String key, final Object value) {
+        public void state(final String key, final Object value) {
             state.put(key, value);
         }
 

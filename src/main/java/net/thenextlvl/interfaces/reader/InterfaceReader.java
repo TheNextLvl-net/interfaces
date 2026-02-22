@@ -4,6 +4,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
+import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.thenextlvl.interfaces.Interface;
 import org.jetbrains.annotations.Contract;
 
@@ -12,7 +15,7 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.nio.file.Path;
 
-public interface InterfaceReader {
+public interface InterfaceReader extends ParserContext {
     @Contract(value = " -> new", pure = true)
     static InterfaceReader reader() {
         return new SimpleInterfaceReader();
@@ -27,6 +30,9 @@ public interface InterfaceReader {
     @Contract(value = "_, _, _ -> this", mutates = "this")
     <T extends JsonElement> InterfaceReader registerConditionParser(String id, Class<T> type, ConditionParser<T> parser);
 
+    @Contract(value = "_ -> this", mutates = "this")
+    InterfaceReader textRenderer(TextRenderer renderer);
+
     @Contract(value = "_ -> new", pure = true)
     Interface read(Path path) throws IOException, JsonIOException, JsonSyntaxException;
 
@@ -38,4 +44,10 @@ public interface InterfaceReader {
 
     @Contract(value = "_ -> new", pure = true)
     Interface read(JsonObject object) throws IllegalStateException;
+
+    @FunctionalInterface
+    interface TextRenderer {
+        @Contract(value = "_, _, _ -> new", pure = true)
+        Component renderText(String text, Audience audience, TagResolver... resolvers);
+    }
 }
