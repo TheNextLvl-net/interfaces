@@ -1,21 +1,17 @@
 package net.thenextlvl.interfaces;
 
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Contract;
 
-public sealed interface RenderContext permits SimpleRenderContext {
+public sealed interface RenderContext extends InterfaceSession permits ClickContext, SimpleRenderContext {
     @Contract(pure = true)
-    Player player();
+    int getIndex();
 
     @Contract(pure = true)
-    int index();
+    int getRow();
 
     @Contract(pure = true)
-    int row();
+    int getColumn();
 
     @Contract(pure = true)
-    int column();
-
-    @Contract(pure = true)
-    int slot();
+    int getSlot();
 }

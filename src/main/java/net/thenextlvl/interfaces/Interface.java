@@ -9,7 +9,6 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MenuType;
-import org.bukkit.plugin.Plugin;
 import org.intellij.lang.annotations.MagicConstant;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.Range;
@@ -30,10 +29,10 @@ public sealed interface Interface permits SimpleInterface {
     @Nullable Component title(Player player);
 
     @Contract(pure = true)
-    @Nullable Consumer<Player> onOpen();
+    @Nullable Consumer<InterfaceSession> onOpen();
 
     @Contract(pure = true)
-    @Nullable BiConsumer<Player, InventoryCloseEvent.Reason> onClose();
+    @Nullable BiConsumer<InterfaceSession, InventoryCloseEvent.Reason> onClose();
 
     @Unmodifiable
     @Contract(pure = true)
@@ -47,10 +46,6 @@ public sealed interface Interface permits SimpleInterface {
     @Contract(value = " -> new", pure = true)
     static Builder builder() {
         return new SimpleInterface.Builder();
-    }
-
-    static void registerHandler(final Plugin plugin) {
-        plugin.getServer().getPluginManager().registerEvents(InterfaceHandler.INSTANCE, plugin);
     }
 
     sealed interface Builder permits SimpleInterface.Builder {
@@ -89,10 +84,10 @@ public sealed interface Interface permits SimpleInterface {
         Builder slot(char c, Renderer renderer, ClickAction action);
 
         @Contract(value = "_ -> this", pure = true)
-        Builder onOpen(@Nullable Consumer<Player> handler);
+        Builder onOpen(@Nullable Consumer<InterfaceSession> handler);
 
         @Contract(value = "_ -> this", pure = true)
-        Builder onClose(@Nullable BiConsumer<Player, InventoryCloseEvent.Reason> handler);
+        Builder onClose(@Nullable BiConsumer<InterfaceSession, InventoryCloseEvent.Reason> handler);
 
         @Contract(value = " -> new", pure = true)
         Interface build() throws IllegalArgumentException;
@@ -119,11 +114,11 @@ public sealed interface Interface permits SimpleInterface {
                                 "# abcba #",
                                 "-       -",
                                 "#-#-x-#-#")
-                        .mask('a', context -> ItemStack.of(Material.IRON_INGOT, context.slot()))
-                        .mask('b', context -> ItemStack.of(Material.GOLD_INGOT, context.index() + 1))
-                        .mask('c', context -> ItemStack.of(Material.DIAMOND, context.row()))
-                        .mask('#', context -> ItemStack.of(Material.BLACK_STAINED_GLASS_PANE, context.index() + 1))
-                        .mask(' ', context -> ItemStack.of(Material.LIGHT_GRAY_STAINED_GLASS_PANE, context.column()))
+                        .mask('a', context -> ItemStack.of(Material.IRON_INGOT, context.getSlot()))
+                        .mask('b', context -> ItemStack.of(Material.GOLD_INGOT, context.getIndex() + 1))
+                        .mask('c', context -> ItemStack.of(Material.DIAMOND, context.getRow()))
+                        .mask('#', context -> ItemStack.of(Material.BLACK_STAINED_GLASS_PANE, context.getIndex() + 1))
+                        .mask(' ', context -> ItemStack.of(Material.LIGHT_GRAY_STAINED_GLASS_PANE, context.getColumn()))
                         .mask('-', ItemStack.of(Material.RED_STAINED_GLASS_PANE))
                         .build())
                 .rows(5)
@@ -131,8 +126,8 @@ public sealed interface Interface permits SimpleInterface {
                     System.out.println(player.getName() + " clicked the barrier");
                     player.closeInventory();
                 }))
-                .onOpen(player -> System.out.println(player.getName() + " opened the inventory"))
-                .onClose((player, reason) -> System.out.println(player.getName() + " closed the inventory with reason " + reason))
+                .onOpen(context -> System.out.println(context.getPlayer().getName() + " opened the inventory"))
+                .onClose((context, reason) -> System.out.println(context.getPlayer().getName() + " closed the inventory with reason " + reason))
                 .build();
     }
 }

@@ -9,6 +9,7 @@ import net.kyori.adventure.text.Component;
 import net.thenextlvl.interfaces.ActionItem;
 import net.thenextlvl.interfaces.ClickAction;
 import net.thenextlvl.interfaces.Interface;
+import net.thenextlvl.interfaces.InterfaceSession;
 import net.thenextlvl.interfaces.Layout;
 import net.thenextlvl.interfaces.Renderer;
 import net.thenextlvl.interfaces.reader.action.BroadcastActionParser;
@@ -150,7 +151,7 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
                 .ifPresent(builder::onOpen);
         get(object, "on_close", JsonArray.class)
                 .flatMap(this::readActions)
-                .map(actions -> (BiConsumer<Player, Reason>) (player, reason) -> actions.accept(player))
+                .map(actions -> (BiConsumer<InterfaceSession, Reason>) (session, reason) -> actions.accept(session))
                 .ifPresent(builder::onClose);
 
         return builder.layout(layout.build()).build();
@@ -169,17 +170,17 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
                 .filter(Objects::nonNull)
                 .reduce(ClickAction::andThen)
                 .map(clickAction -> parseActions(object)
-                        .map(ClickAction::of)
+                        .map(session -> (ClickAction) session::accept)
                         .map(clickAction::andThen)
                         .orElse(clickAction))
                 .or(() -> parseActions(object)
-                        .map(ClickAction::of));
+                        .map(session -> session::accept));
     }
 
     @Override
     @SuppressWarnings({"unchecked", "NullableProblems"})
-    public Optional<Consumer<Player>> parseActions(final JsonObject object) {
-        final Function<RegisteredActionParser<?>, @Nullable Consumer<Player>> function = p -> {
+    public Optional<Consumer<InterfaceSession>> parseActions(final JsonObject object) {
+        final Function<RegisteredActionParser<?>, @Nullable Consumer<InterfaceSession>> function = p -> {
             final var parser = (RegisteredActionParser<JsonElement>) p;
             final var element = object.get(parser.id());
             if (!parser.type().isInstance(element)) return null;
@@ -192,8 +193,8 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
 
     @Override
     @SuppressWarnings({"unchecked", "NullableProblems"})
-    public Optional<Predicate<Player>> parseConditions(final JsonObject object) {
-        final Function<RegisteredConditionParser<?>, @Nullable Predicate<Player>> function = p -> {
+    public Optional<Predicate<InterfaceSession>> parseConditions(final JsonObject object) {
+        final Function<RegisteredConditionParser<?>, @Nullable Predicate<InterfaceSession>> function = p -> {
             final var parser = (RegisteredConditionParser<JsonElement>) p;
             final var element = object.get(parser.id());
             if (!parser.type().isInstance(element)) return null;
@@ -230,24 +231,24 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
                 .map(object -> parseClickActions(object).orElse(null))
                 .filter(Objects::nonNull)
                 .reduce(ClickAction::andThen)
-                .map(actions -> readConditions(array).map(conditions -> (ClickAction) (player, type, index) -> {
-                    if (conditions.test(player)) actions.click(player, type, index);
+                .map(actions -> readConditions(array).map(conditions -> (ClickAction) context -> {
+                    if (conditions.test(context)) actions.click(context);
                 }).orElse(actions));
     }
 
-    private Optional<Consumer<Player>> readActions(final JsonArray array) {
+    private Optional<Consumer<InterfaceSession>> readActions(final JsonArray array) {
         return array.asList().stream()
                 .filter(JsonObject.class::isInstance)
                 .map(JsonObject.class::cast)
                 .map(object -> parseActions(object).orElse(null))
                 .filter(Objects::nonNull)
                 .reduce(Consumer::andThen)
-                .map(actions -> readConditions(array).map(conditions -> (Consumer<Player>) player -> {
-                    if (conditions.test(player)) actions.accept(player);
+                .map(actions -> readConditions(array).map(conditions -> (Consumer<InterfaceSession>) session -> {
+                    if (conditions.test(session)) actions.accept(session);
                 }).orElse(actions));
     }
 
-    private Optional<Predicate<Player>> readConditions(final JsonArray array) {
+    private Optional<Predicate<InterfaceSession>> readConditions(final JsonArray array) {
         return array.asList().stream()
                 .filter(JsonObject.class::isInstance)
                 .map(JsonObject.class::cast)

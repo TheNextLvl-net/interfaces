@@ -12,32 +12,40 @@ public interface ClickAction {
     /**
      * Called when an item inside an interface is clicked.
      *
-     * @param type   the click type
-     * @param index  the clicked slot index
-     * @param player the player who clicked
+     * @param context click context
      */
-    void click(Player player, ClickType type, int index);
+    void click(ClickContext context);
 
     @Contract(value = "_ -> new", pure = true)
     default ClickAction andThen(final ClickAction other) {
-        return (player, type, index) -> {
-            click(player, type, index);
-            other.click(player, type, index);
+        return context -> {
+            click(context);
+            other.click(context);
         };
     }
 
     @Contract(value = "_ -> new", pure = true)
     static ClickAction of(final BiConsumer<Player, ClickType> action) {
-        return (player, type, index) -> action.accept(player, type);
+        return context -> action.accept(context.getPlayer(), context.getClickType());
+    }
+
+    @Contract(value = "_ -> new", pure = true)
+    static ClickAction of(final TriConsumer<Player, ClickType, Integer> action) {
+        return context -> action.accept(context.getPlayer(), context.getClickType(), context.getSlot());
     }
 
     @Contract(value = "_ -> new", pure = true)
     static ClickAction of(final Consumer<Player> action) {
-        return (player, type, index) -> action.accept(player);
+        return context -> action.accept(context.getPlayer());
     }
 
     @Contract(value = "_ -> new", pure = true)
     static ClickAction of(final Runnable action) {
-        return (player, type, index) -> action.run();
+        return context -> action.run();
+    }
+
+    @FunctionalInterface
+    interface TriConsumer<T, U, V> {
+        void accept(T t, U u, V v);
     }
 }

@@ -6,8 +6,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MenuType;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
@@ -19,9 +21,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 final class SimpleInterface implements Interface {
-    private final @Nullable BiConsumer<Player, InventoryCloseEvent.Reason> onClose;
+    private final @Nullable BiConsumer<InterfaceSession, InventoryCloseEvent.Reason> onClose;
     private final @Nullable Function<Player, Component> title;
-    private final @Nullable Consumer<Player> onOpen;
+    private final @Nullable Consumer<InterfaceSession> onOpen;
 
     private final Layout layout;
     private final Map<Character, ActionItem> slots;
@@ -30,9 +32,11 @@ final class SimpleInterface implements Interface {
     private final @Nullable Item[] items;
 
     private SimpleInterface(
-            final MenuType type, @Nullable final Function<Player, Component> title, final Layout layout,
-            @Nullable final Consumer<Player> onOpen,
-            @Nullable final BiConsumer<Player, InventoryCloseEvent.Reason> onClose,
+            final MenuType type,
+            @Nullable final Function<Player, Component> title,
+            final Layout layout,
+            @Nullable final Consumer<InterfaceSession> onOpen,
+            @Nullable final BiConsumer<InterfaceSession, InventoryCloseEvent.Reason> onClose,
             final Map<Character, ActionItem> slots
     ) {
         this.type = type;
@@ -65,7 +69,7 @@ final class SimpleInterface implements Interface {
 
             if (item != null) {
                 final var action = actionItem != null ? actionItem.action() : null;
-                this.items[slot] = new Item(item, action, indices.get(c), row, column, slot);
+                this.items[slot] = new Item(c, item, action, indices.get(c), row, column, slot);
             } else {
                 this.items[slot] = null;
             }
@@ -86,12 +90,12 @@ final class SimpleInterface implements Interface {
     }
 
     @Override
-    public @Nullable Consumer<Player> onOpen() {
+    public @Nullable Consumer<InterfaceSession> onOpen() {
         return onOpen;
     }
 
     @Override
-    public @Nullable BiConsumer<Player, InventoryCloseEvent.Reason> onClose() {
+    public @Nullable BiConsumer<InterfaceSession, InventoryCloseEvent.Reason> onClose() {
         return onClose;
     }
 
@@ -103,17 +107,9 @@ final class SimpleInterface implements Interface {
     @Override
     public void open(final Player player) {
         final var view = type.create(player, title(player));
-        final var size = view.getTopInventory().getSize();
-
-        for (final var item : items) {
-            if (item == null) continue;
-            final var slot = item.slot();
-            Preconditions.checkPositionIndex(slot, size, "Inventory slot");
-            final var context = new SimpleRenderContext(player, item.index(), item.row(), item.column(), slot);
-            view.setItem(slot, item.renderer().render(context));
-        }
-
-        InterfaceHandler.INSTANCE.setView(player, view, this);
+        final var session = new Session(player, view, this);
+        session.refresh();
+        InterfaceHandler.INSTANCE.setView(player, session);
         player.openInventory(view);
     }
 
@@ -128,22 +124,109 @@ final class SimpleInterface implements Interface {
                 .onClose(onClose);
     }
 
-    public void handleClick(final Player player, final InventoryClickEvent event) {
+    public void handleClick(final Session session, final InventoryClickEvent event) {
         if (!event.getView().getTopInventory().equals(event.getClickedInventory())) return;
         final var slot = event.getSlot();
         if (slot < 0 || slot >= items.length) return;
         final var item = items[slot];
         if (item == null || item.action() == null) return;
-        item.action().click(player, event.getClick(), event.getHotbarButton());
+        final var context = new SimpleClickContext(
+                session.getPlayer(),
+                event.getView(),
+                this,
+                item.index(),
+                item.row(),
+                item.column(),
+                slot,
+                event.getClick()
+        );
+        item.action().click(context);
     }
 
-    public record Item(Renderer renderer, @Nullable ClickAction action, int index, int row, int column, int slot) {
+    public record Item(
+            char key,
+            Renderer renderer,
+            @Nullable ClickAction action,
+            int index,
+            int row,
+            int column,
+            int slot
+    ) {
+    }
+
+    public static sealed class Session implements InterfaceSession permits SimpleRenderContext {
+        private final Map<String, Object> state = new HashMap<>();
+        private final SimpleInterface interface_;
+        private final InventoryView view;
+        private final Player player;
+
+        Session(final Player player, final InventoryView view, final SimpleInterface interface_) {
+            this.interface_ = interface_;
+            this.player = player;
+            this.view = view;
+        }
+
+        @Override
+        @SuppressWarnings("ClassEscapesDefinedScope")
+        public SimpleInterface getInterface() {
+            return interface_;
+        }
+
+        @Override
+        public Player getPlayer() {
+            return player;
+        }
+
+        @Override
+        public InventoryView getView() {
+            return view;
+        }
+
+        @Override
+        public <T> T getState(final String key, final Class<T> type, final T fallback) {
+            final var value = state.get(key);
+            return type.isInstance(value) ? type.cast(value) : fallback;
+        }
+
+        @Override
+        public void setState(final String key, final Object value) {
+            state.put(key, value);
+        }
+
+        @Override
+        public void refresh() {
+            for (var i = 0; i < interface_.items.length; i++) {
+                refreshSlot(i);
+            }
+        }
+
+        @Override
+        public void refresh(final char key) {
+            for (var i = 0; i < interface_.items.length; i++) {
+                final var item = interface_.items[i];
+                if (item == null || item.key() != key) continue;
+                refreshSlot(i);
+            }
+        }
+
+        @Override
+        public void refreshSlot(final int slot) {
+            Preconditions.checkElementIndex(slot, interface_.items.length, "Slot");
+            final var item = interface_.items[slot];
+            if (item == null) {
+                view.setItem(slot, null);
+                return;
+            }
+
+            final var context = new SimpleRenderContext(player, view, interface_, item.index(), item.row(), item.column(), slot);
+            view.setItem(slot, item.renderer().render(context));
+        }
     }
 
     public static final class Builder implements Interface.Builder {
-        private @Nullable BiConsumer<Player, InventoryCloseEvent.Reason> onClose = null;
+        private @Nullable BiConsumer<InterfaceSession, InventoryCloseEvent.Reason> onClose = null;
         private @Nullable Function<Player, Component> title = null;
-        private @Nullable Consumer<Player> onOpen = null;
+        private @Nullable Consumer<InterfaceSession> onOpen = null;
 
         private Layout layout = Layout.empty();
         private @Nullable MenuType type = null;
@@ -203,13 +286,13 @@ final class SimpleInterface implements Interface {
         }
 
         @Override
-        public Interface.Builder onOpen(@Nullable final Consumer<Player> handler) {
+        public Interface.Builder onOpen(@Nullable final Consumer<InterfaceSession> handler) {
             this.onOpen = handler;
             return this;
         }
 
         @Override
-        public Interface.Builder onClose(@Nullable final BiConsumer<Player, InventoryCloseEvent.Reason> handler) {
+        public Interface.Builder onClose(@Nullable final BiConsumer<InterfaceSession, InventoryCloseEvent.Reason> handler) {
             this.onClose = handler;
             return this;
         }
@@ -300,5 +383,10 @@ final class SimpleInterface implements Interface {
                 Preconditions.checkArgument(patternChars.contains(c), "Mask or slot '%s' is not defined in pattern", c);
             });
         }
+    }
+
+    static {
+        final var plugin = JavaPlugin.getProvidingPlugin(SimpleInterface.class);
+        plugin.getServer().getPluginManager().registerEvents(InterfaceHandler.INSTANCE, plugin);
     }
 }

@@ -2,7 +2,7 @@ package net.thenextlvl.interfaces.reader;
 
 import com.google.gson.JsonObject;
 import net.thenextlvl.interfaces.ClickAction;
-import org.bukkit.entity.Player;
+import net.thenextlvl.interfaces.InterfaceSession;
 import org.jetbrains.annotations.Contract;
 
 import java.util.Optional;
@@ -16,9 +16,9 @@ public interface ParserContext {
 
     // parses all actions
     @Contract(pure = true)
-    Optional<Consumer<Player>> parseActions(JsonObject object);
+    Optional<Consumer<InterfaceSession>> parseActions(JsonObject object);
 
     // parses all conditions
     @Contract(pure = true)
-    Optional<Predicate<Player>> parseConditions(JsonObject object);
+    Optional<Predicate<InterfaceSession>> parseConditions(JsonObject object);
 }

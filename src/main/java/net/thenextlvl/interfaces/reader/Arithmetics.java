@@ -9,10 +9,10 @@ final class Arithmetics {
         return expression
                 .replace(" ", "")
                 .toLowerCase(Locale.ROOT)
-                .replace("row", String.valueOf(context.row()))
-                .replace("column", String.valueOf(context.column()))
-                .replace("index", String.valueOf(context.index()))
-                .replace("slot", String.valueOf(context.slot()));
+                .replace("row", String.valueOf(context.getRow()))
+                .replace("column", String.valueOf(context.getColumn()))
+                .replace("index", String.valueOf(context.getIndex()))
+                .replace("slot", String.valueOf(context.getSlot()));
     }
 
     public static double evaluate(final String compiled) {

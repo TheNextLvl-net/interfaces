@@ -2,9 +2,9 @@ package net.thenextlvl.interfaces.reader.action;
 
 import com.google.gson.JsonPrimitive;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import net.thenextlvl.interfaces.InterfaceSession;
 import net.thenextlvl.interfaces.reader.ActionParser;
 import net.thenextlvl.interfaces.reader.ParserContext;
-import org.bukkit.entity.Player;
 
 import java.util.function.Consumer;
 
@@ -15,9 +15,9 @@ public final class MessageActionParser implements ActionParser<JsonPrimitive> {
     }
 
     @Override
-    public Consumer<Player> parse(final JsonPrimitive primitive, final ParserContext context) {
+    public Consumer<InterfaceSession> parse(final JsonPrimitive primitive, final ParserContext context) {
         final var message = primitive.getAsString();
-        return player -> player.sendRichMessage(message,
-                Placeholder.parsed("player", player.getName()));
+        return session -> session.getPlayer().sendRichMessage(message,
+                Placeholder.parsed("player", session.getPlayer().getName()));
     }
 }

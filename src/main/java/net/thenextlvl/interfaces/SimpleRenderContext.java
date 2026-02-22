@@ -1,6 +1,47 @@
 package net.thenextlvl.interfaces;
 
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.InventoryView;
 
-record SimpleRenderContext(Player player, int index, int row, int column, int slot) implements RenderContext {
+non-sealed class SimpleRenderContext extends SimpleInterface.Session implements RenderContext {
+    private final int index;
+    private final int row;
+    private final int column;
+    private final int slot;
+
+    public SimpleRenderContext(
+            final Player player,
+            final InventoryView view,
+            final SimpleInterface interface_,
+            final int index,
+            final int row,
+            final int column,
+            final int slot
+    ) {
+        super(player, view, interface_);
+        this.index = index;
+        this.row = row;
+        this.column = column;
+        this.slot = slot;
+    }
+
+    @Override
+    public int getIndex() {
+        return index;
+    }
+
+    @Override
+    public int getRow() {
+        return row;
+    }
+
+    @Override
+    public int getColumn() {
+        return column;
+    }
+
+    @Override
+    public int getSlot() {
+        return slot;
+    }
 }
