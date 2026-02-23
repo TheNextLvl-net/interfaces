@@ -2,7 +2,6 @@ package net.thenextlvl.interfaces.reader;
 
 import com.google.gson.JsonElement;
 import net.thenextlvl.interfaces.InterfaceSession;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Contract;
 
 import java.util.function.Consumer;
