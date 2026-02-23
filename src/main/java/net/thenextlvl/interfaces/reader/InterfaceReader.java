@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.tag.Tag;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.thenextlvl.interfaces.Interface;
 import org.jetbrains.annotations.Contract;
@@ -54,6 +55,30 @@ public interface InterfaceReader extends ParserContext {
     @FunctionalInterface
     interface TextRenderer {
         @Contract(value = "_, _, _ -> new", pure = true)
-        Component renderText(JsonElement element, Audience audience, TagResolver... resolvers);
+        Component renderText(String text, Audience audience, TagResolver... resolvers);
+
+        @Contract(value = "_, _, _ -> new", pure = true)
+        default Component renderText(final JsonElement element, final Audience audience, final TagResolver... resolvers) {
+            if (element.isJsonObject()) return renderText(element.getAsJsonObject(), audience, resolvers);
+            return renderText(element.getAsString(), audience, resolvers);
+        }
+
+        @Contract(value = "_, _, _ -> new", pure = true)
+        default Component renderText(final JsonObject object, final Audience audience, final TagResolver... resolvers) {
+            final var message = object.get("content").getAsString();
+            return renderText(message, audience, resolveTags(object).resolvers(resolvers).build());
+        }
+
+        @SuppressWarnings("PatternValidation")
+        default TagResolver.Builder resolveTags(final JsonObject object) {
+            final var builder = TagResolver.builder();
+
+            for (final var entry : object.entrySet()) {
+                if (entry.getKey().equals("content")) continue;
+                builder.tag(entry.getKey(), Tag.preProcessParsed(entry.getValue().getAsString()));
+            }
+
+            return builder;
+        }
     }
 }

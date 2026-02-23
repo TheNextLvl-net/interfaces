@@ -1,7 +1,6 @@
 package net.thenextlvl.interfaces.reader.item;
 
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.ItemLore;
 import net.thenextlvl.interfaces.RenderContext;
@@ -19,10 +18,10 @@ public final class LoreItemParser implements DynamicItemParser<JsonArray> {
 
     @Override
     public BiConsumer<ItemStack, RenderContext> parse(final JsonArray element, final ParserContext context) {
-        final var lines = element.asList().stream().map(JsonElement::getAsString).toList();
+        final var lines = element.asList();
         return (itemStack, renderContext) -> {
             itemStack.setData(DataComponentTypes.LORE, ItemLore.lore().lines(lines.stream()
-                    .map(line -> context.renderText(renderContext.player(), element))
+                    .map(line -> context.renderText(renderContext.player(), line))
                     .toList()).build());
         };
     }

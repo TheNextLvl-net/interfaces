@@ -56,8 +56,8 @@ import java.util.function.Predicate;
 final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     private final Set<RegisteredClickActionParser<?>> clickActionParsers = new CopyOnWriteArraySet<>();
     private final Set<RegisteredActionParser<?>> actionParsers = new CopyOnWriteArraySet<>(Set.of(
-            new RegisteredActionParser<>("send_message", JsonPrimitive.class, MessageActionParser.INSTANCE),
-            new RegisteredActionParser<>("broadcast", JsonPrimitive.class, BroadcastActionParser.INSTANCE),
+            new RegisteredActionParser<>("send_message", JsonElement.class, MessageActionParser.INSTANCE),
+            new RegisteredActionParser<>("broadcast", JsonElement.class, BroadcastActionParser.INSTANCE),
             new RegisteredActionParser<>("run_command", JsonPrimitive.class, CommandActionParser.INSTANCE),
             new RegisteredActionParser<>("run_console_command", JsonPrimitive.class, ConsoleCommandActionParser.INSTANCE),
             new RegisteredActionParser<>("play_sound", JsonObject.class, SoundActionParser.INSTANCE),
@@ -76,12 +76,11 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     ));
     private final Set<RegisteredDynamicItemParser<?>> dynamicItemParsers = new CopyOnWriteArraySet<>(Set.of(
             new RegisteredDynamicItemParser<>("amount", JsonPrimitive.class, AmountItemParser.INSTANCE),
-            new RegisteredDynamicItemParser<>("name", JsonPrimitive.class, NameItemParser.INSTANCE),
+            new RegisteredDynamicItemParser<>("name", JsonElement.class, NameItemParser.INSTANCE),
             new RegisteredDynamicItemParser<>("lore", JsonArray.class, LoreItemParser.INSTANCE)
     ));
-    private TextRenderer renderer = (element, audience, resolvers) -> {
-        var builder = TagResolver.builder().resolvers(resolvers);
-        return MiniMessage.miniMessage().deserialize(element.getAsString(), builder.build());
+    private TextRenderer renderer = (text, audience, resolvers) -> {
+        return MiniMessage.miniMessage().deserialize(text, resolvers);
     };
 
     private record RegisteredClickActionParser<T extends JsonElement>(

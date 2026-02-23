@@ -1,5 +1,6 @@
 package net.thenextlvl.interfaces.reader.item;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import net.thenextlvl.interfaces.RenderContext;
@@ -9,14 +10,14 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.function.BiConsumer;
 
-public final class NameItemParser implements DynamicItemParser<JsonPrimitive> {
+public final class NameItemParser implements DynamicItemParser<JsonElement> {
     public static final NameItemParser INSTANCE = new NameItemParser();
 
     private NameItemParser() {
     }
 
     @Override
-    public BiConsumer<ItemStack, RenderContext> parse(final JsonPrimitive element, final ParserContext context) {
+    public BiConsumer<ItemStack, RenderContext> parse(final JsonElement element, final ParserContext context) {
         return (itemStack, renderContext) -> {
             final var rendered = context.renderText(renderContext.player(), element);
             itemStack.setData(DataComponentTypes.ITEM_NAME, rendered);
