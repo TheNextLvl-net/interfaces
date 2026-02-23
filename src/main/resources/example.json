@@ -23,6 +23,15 @@
       {
         "no_permission": "example.diamond",
         "send_message": "<red>You don't have the permission to get a diamond!<red>"
+      },
+      {
+        "click_type": "drop",
+        "connect": "lobby",
+        "close_inventory": {}
+      },
+      {
+        "click_type": "drop_all",
+        "transfer": "localhost:25565"
       }
     ]
   },

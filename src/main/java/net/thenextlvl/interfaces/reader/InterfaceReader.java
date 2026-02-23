@@ -30,6 +30,12 @@ public interface InterfaceReader extends ParserContext {
     @Contract(value = "_, _, _ -> this", mutates = "this")
     <T extends JsonElement> InterfaceReader registerConditionParser(String id, Class<T> type, ConditionParser<T> parser);
 
+    @Contract(value = "_, _, _ -> this", mutates = "this")
+    <T extends JsonElement> InterfaceReader registerItemParser(String id, Class<T> type, ItemParser<T> parser);
+
+    @Contract(value = "_, _, _ -> this", mutates = "this")
+    <T extends JsonElement> InterfaceReader registerDynamicItemParser(String id, Class<T> type, DynamicItemParser<T> parser);
+
     @Contract(value = "_ -> this", mutates = "this")
     InterfaceReader textRenderer(TextRenderer renderer);
 

@@ -8,6 +8,7 @@ module net.thenextlvl.interfaces {
     requires com.google.common;
     requires com.google.gson;
     requires net.kyori.adventure.text.minimessage;
+    requires net.kyori.adventure;
     requires net.kyori.examination.api;
     requires org.bukkit;
 

@@ -1,4 +1,4 @@
-package net.thenextlvl.interfaces.reader;
+package net.thenextlvl.interfaces.reader.item;
 
 import net.thenextlvl.interfaces.RenderContext;
 

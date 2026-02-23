@@ -14,16 +14,27 @@ import net.thenextlvl.interfaces.ClickAction;
 import net.thenextlvl.interfaces.Interface;
 import net.thenextlvl.interfaces.InterfaceSession;
 import net.thenextlvl.interfaces.Layout;
+import net.thenextlvl.interfaces.RenderContext;
 import net.thenextlvl.interfaces.Renderer;
 import net.thenextlvl.interfaces.reader.action.BroadcastActionParser;
+import net.thenextlvl.interfaces.reader.action.CloseInventoryActionParser;
 import net.thenextlvl.interfaces.reader.action.CommandActionParser;
+import net.thenextlvl.interfaces.reader.action.ConnectActionParser;
 import net.thenextlvl.interfaces.reader.action.ConsoleCommandActionParser;
 import net.thenextlvl.interfaces.reader.action.MessageActionParser;
 import net.thenextlvl.interfaces.reader.action.SoundActionParser;
+import net.thenextlvl.interfaces.reader.action.TransferActionParser;
+import net.thenextlvl.interfaces.reader.condition.ClickTypeConditionParser;
 import net.thenextlvl.interfaces.reader.condition.NoPermissionConditionParser;
 import net.thenextlvl.interfaces.reader.condition.PermissionConditionParser;
+import net.thenextlvl.interfaces.reader.item.AmountItemParser;
+import net.thenextlvl.interfaces.reader.item.HideTooltipItemParser;
+import net.thenextlvl.interfaces.reader.item.LoreItemParser;
+import net.thenextlvl.interfaces.reader.item.NameItemParser;
+import net.thenextlvl.interfaces.reader.item.ProfileItemParser;
 import org.bukkit.Bukkit;
 import org.bukkit.event.inventory.InventoryCloseEvent.Reason;
+import org.bukkit.inventory.ItemStack;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
@@ -42,9 +53,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static net.thenextlvl.interfaces.reader.Arithmetics.compile;
-import static net.thenextlvl.interfaces.reader.Arithmetics.evaluate;
-
 final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     private final Set<RegisteredClickActionParser<?>> clickActionParsers = new CopyOnWriteArraySet<>();
     private final Set<RegisteredActionParser<?>> actionParsers = new CopyOnWriteArraySet<>(Set.of(
@@ -52,11 +60,24 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
             new RegisteredActionParser<>("broadcast", JsonPrimitive.class, BroadcastActionParser.INSTANCE),
             new RegisteredActionParser<>("run_command", JsonPrimitive.class, CommandActionParser.INSTANCE),
             new RegisteredActionParser<>("run_console_command", JsonPrimitive.class, ConsoleCommandActionParser.INSTANCE),
-            new RegisteredActionParser<>("play_sound", JsonObject.class, SoundActionParser.INSTANCE)
+            new RegisteredActionParser<>("play_sound", JsonObject.class, SoundActionParser.INSTANCE),
+            new RegisteredActionParser<>("transfer", JsonPrimitive.class, TransferActionParser.INSTANCE),
+            new RegisteredActionParser<>("connect", JsonPrimitive.class, ConnectActionParser.INSTANCE),
+            new RegisteredActionParser<>("close_inventory", JsonObject.class, CloseInventoryActionParser.INSTANCE)
     ));
     private final Set<RegisteredConditionParser<?>> conditionParsers = new CopyOnWriteArraySet<>(Set.of(
+            new RegisteredConditionParser<>("click_type", JsonPrimitive.class, ClickTypeConditionParser.INSTANCE),
             new RegisteredConditionParser<>("permission", JsonPrimitive.class, PermissionConditionParser.INSTANCE),
             new RegisteredConditionParser<>("no_permission", JsonPrimitive.class, NoPermissionConditionParser.INSTANCE)
+    ));
+    private final Set<RegisteredItemParser<?>> itemParsers = new CopyOnWriteArraySet<>(Set.of(
+            new RegisteredItemParser<>("profile", JsonPrimitive.class, ProfileItemParser.INSTANCE),
+            new RegisteredItemParser<>("hide_tooltip", JsonPrimitive.class, HideTooltipItemParser.INSTANCE)
+    ));
+    private final Set<RegisteredDynamicItemParser<?>> dynamicItemParsers = new CopyOnWriteArraySet<>(Set.of(
+            new RegisteredDynamicItemParser<>("amount", JsonPrimitive.class, AmountItemParser.INSTANCE),
+            new RegisteredDynamicItemParser<>("name", JsonPrimitive.class, NameItemParser.INSTANCE),
+            new RegisteredDynamicItemParser<>("lore", JsonArray.class, LoreItemParser.INSTANCE)
     ));
     private TextRenderer renderer = (text, audience, resolvers) -> {
         var builder = TagResolver.builder()
@@ -85,6 +106,20 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     ) {
     }
 
+    private record RegisteredItemParser<T extends JsonElement>(
+            String id,
+            Class<T> type,
+            ItemParser<T> parser
+    ) {
+    }
+
+    private record RegisteredDynamicItemParser<T extends JsonElement>(
+            String id,
+            Class<T> type,
+            DynamicItemParser<T> parser
+    ) {
+    }
+
     @Override
     public <T extends JsonElement> InterfaceReader registerActionParser(final String id, final Class<T> type, final ClickActionParser<T> parser) {
         clickActionParsers.add(new RegisteredClickActionParser<>(id, type, parser));
@@ -100,6 +135,18 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     @Override
     public <T extends JsonElement> InterfaceReader registerConditionParser(final String id, final Class<T> type, final ConditionParser<T> parser) {
         conditionParsers.add(new RegisteredConditionParser<>(id, type, parser));
+        return this;
+    }
+
+    @Override
+    public <T extends JsonElement> InterfaceReader registerItemParser(final String id, final Class<T> type, final ItemParser<T> parser) {
+        itemParsers.add(new RegisteredItemParser<>(id, type, parser));
+        return this;
+    }
+
+    @Override
+    public <T extends JsonElement> InterfaceReader registerDynamicItemParser(final String id, final Class<T> type, final DynamicItemParser<T> parser) {
+        dynamicItemParsers.add(new RegisteredDynamicItemParser<>(id, type, parser));
         return this;
     }
 
@@ -222,6 +269,32 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
                 .reduce(Predicate::and);
     }
 
+    @SuppressWarnings({"unchecked", "NullableProblems"})
+    private Optional<Consumer<ItemStack>> parseItems(final JsonObject object) {
+        final Function<RegisteredItemParser<?>, @Nullable Consumer<ItemStack>> function = p -> {
+            final var parser = (RegisteredItemParser<JsonElement>) p;
+            final var element = object.get(parser.id());
+            if (!parser.type().isInstance(element)) return null;
+            return parser.parser().parse(parser.type().cast(element), this);
+        };
+        return itemParsers.stream().map(function)
+                .filter(Objects::nonNull)
+                .reduce(Consumer::andThen);
+    }
+
+    @SuppressWarnings({"unchecked", "NullableProblems"})
+    private Optional<BiConsumer<ItemStack, RenderContext>> parseDynamicItems(final JsonObject object) {
+        final Function<RegisteredDynamicItemParser<?>, @Nullable BiConsumer<ItemStack, RenderContext>> function = p -> {
+            final var parser = (RegisteredDynamicItemParser<JsonElement>) p;
+            final var element = object.get(parser.id());
+            if (!parser.type().isInstance(element)) return null;
+            return parser.parser().parse(parser.type().cast(element), this);
+        };
+        return dynamicItemParsers.stream().map(function)
+                .filter(Objects::nonNull)
+                .reduce(BiConsumer::andThen);
+    }
+
     private <T extends JsonElement> Optional<T> get(final JsonObject object, final String key, final Class<T> type) {
         return Optional.ofNullable(object.get(key)).filter(type::isInstance).map(type::cast);
     }
@@ -230,47 +303,38 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
         final var item = get(object, "item", JsonPrimitive.class)
                 .map(JsonPrimitive::getAsString)
                 .orElseThrow(() -> new IllegalStateException("Missing or invalid item"));
-        final var amount = get(object, "amount", JsonPrimitive.class)
-                .map(JsonPrimitive::getAsString)
-                .orElse(null);
         final var itemStack = Bukkit.getItemFactory().createItemStack(item);
-        return amount != null ? context -> {
+        parseItems(object).ifPresent(parser -> parser.accept(itemStack));
+        return parseDynamicItems(object).<Renderer>map(consumer -> context -> {
             final var clone = itemStack.clone();
-            clone.setAmount((int) evaluate(compile(amount, context)));
+            consumer.accept(clone, context);
             return clone;
-        } : context -> itemStack.clone();
+        }).orElseGet(() -> context -> itemStack.clone());
     }
 
     private Optional<ClickAction> readClickActions(final JsonArray array) {
         return array.asList().stream()
                 .filter(JsonObject.class::isInstance)
                 .map(JsonObject.class::cast)
-                .map(object -> parseClickActions(object).orElse(null))
+                .map(object -> parseClickActions(object).map(actions ->
+                        parseConditions(object).<ClickAction>map(conditions -> context -> {
+                            if (conditions.test(context)) actions.click(context);
+                        }).orElse(actions)
+                ).orElse(null))
                 .filter(Objects::nonNull)
-                .reduce(ClickAction::andThen)
-                .map(actions -> readConditions(array).map(conditions -> (ClickAction) context -> {
-                    if (conditions.test(context)) actions.click(context);
-                }).orElse(actions));
+                .reduce(ClickAction::andThen);
     }
 
     private Optional<Consumer<InterfaceSession>> readActions(final JsonArray array) {
         return array.asList().stream()
                 .filter(JsonObject.class::isInstance)
                 .map(JsonObject.class::cast)
-                .map(object -> parseActions(object).orElse(null))
+                .map(object -> parseActions(object).map(actions ->
+                        parseConditions(object).<Consumer<InterfaceSession>>map(conditions -> session -> {
+                            if (conditions.test(session)) actions.accept(session);
+                        }).orElse(actions)
+                ).orElse(null))
                 .filter(Objects::nonNull)
-                .reduce(Consumer::andThen)
-                .map(actions -> readConditions(array).map(conditions -> (Consumer<InterfaceSession>) session -> {
-                    if (conditions.test(session)) actions.accept(session);
-                }).orElse(actions));
-    }
-
-    private Optional<Predicate<InterfaceSession>> readConditions(final JsonArray array) {
-        return array.asList().stream()
-                .filter(JsonObject.class::isInstance)
-                .map(JsonObject.class::cast)
-                .map(object -> parseConditions(object).orElse(null))
-                .filter(Objects::nonNull)
-                .reduce(Predicate::and);
+                .reduce(Consumer::andThen);
     }
 }
