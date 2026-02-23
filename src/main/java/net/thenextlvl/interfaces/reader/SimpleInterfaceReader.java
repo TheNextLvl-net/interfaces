@@ -79,10 +79,9 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
             new RegisteredDynamicItemParser<>("name", JsonPrimitive.class, NameItemParser.INSTANCE),
             new RegisteredDynamicItemParser<>("lore", JsonArray.class, LoreItemParser.INSTANCE)
     ));
-    private TextRenderer renderer = (text, audience, resolvers) -> {
-        var builder = TagResolver.builder()
-                .resolvers(resolvers);
-        return MiniMessage.miniMessage().deserialize(text, builder.build());
+    private TextRenderer renderer = (element, audience, resolvers) -> {
+        var builder = TagResolver.builder().resolvers(resolvers);
+        return MiniMessage.miniMessage().deserialize(element.getAsString(), builder.build());
     };
 
     private record RegisteredClickActionParser<T extends JsonElement>(
@@ -157,7 +156,7 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     }
 
     @Override
-    public Component renderText(final Audience audience, final String text, final TagResolver... resolvers) {
+    public Component renderText(final Audience audience, final JsonElement text, final TagResolver... resolvers) {
         return renderer.renderText(text, audience, resolvers);
     }
 
@@ -188,9 +187,9 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
 
         final var builder = Interface.builder();
 
-        get(object, "title", JsonPrimitive.class)
-                .map(JsonPrimitive::getAsString)
-                .ifPresent(title -> builder.title(player -> renderText(player, title)));
+        Optional.ofNullable(object.get("title")).ifPresent(title -> {
+            builder.title(player -> renderText(player, title));
+        });
 
         final var layout = Layout.builder()
                 .pattern(pattern);

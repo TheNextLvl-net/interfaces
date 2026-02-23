@@ -22,7 +22,7 @@ public final class LoreItemParser implements DynamicItemParser<JsonArray> {
         final var lines = element.asList().stream().map(JsonElement::getAsString).toList();
         return (itemStack, renderContext) -> {
             itemStack.setData(DataComponentTypes.LORE, ItemLore.lore().lines(lines.stream()
-                    .map(line -> context.renderText(renderContext.player(), line))
+                    .map(line -> context.renderText(renderContext.player(), element))
                     .toList()).build());
         };
     }

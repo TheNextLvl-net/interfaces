@@ -17,9 +17,8 @@ public final class NameItemParser implements DynamicItemParser<JsonPrimitive> {
 
     @Override
     public BiConsumer<ItemStack, RenderContext> parse(final JsonPrimitive element, final ParserContext context) {
-        final var text = element.getAsString();
         return (itemStack, renderContext) -> {
-            final var rendered = context.renderText(renderContext.player(), text);
+            final var rendered = context.renderText(renderContext.player(), element);
             itemStack.setData(DataComponentTypes.ITEM_NAME, rendered);
         };
     }

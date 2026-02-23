@@ -54,6 +54,6 @@ public interface InterfaceReader extends ParserContext {
     @FunctionalInterface
     interface TextRenderer {
         @Contract(value = "_, _, _ -> new", pure = true)
-        Component renderText(String text, Audience audience, TagResolver... resolvers);
+        Component renderText(JsonElement element, Audience audience, TagResolver... resolvers);
     }
 }

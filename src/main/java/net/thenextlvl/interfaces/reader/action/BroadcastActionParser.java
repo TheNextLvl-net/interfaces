@@ -16,11 +16,10 @@ public final class BroadcastActionParser implements ActionParser<JsonPrimitive> 
 
     @Override
     public Consumer<InterfaceSession> parse(final JsonPrimitive primitive, final ParserContext context) {
-        final var message = primitive.getAsString();
         return session -> {
             final var player = Placeholder.parsed("player", session.player().getName());
             session.player().getServer().forEachAudience(audience -> {
-                audience.sendMessage(context.renderText(audience, message, player));
+                audience.sendMessage(context.renderText(audience, primitive, player));
             });
         };
     }
