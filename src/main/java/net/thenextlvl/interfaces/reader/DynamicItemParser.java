@@ -10,5 +10,5 @@ import java.util.function.BiConsumer;
 @FunctionalInterface
 public interface DynamicItemParser<T extends JsonElement> {
     @Contract(value = "_, _ -> new", pure = true)
-    BiConsumer<ItemStack, RenderContext> parse(T element, ParserContext context);
+    BiConsumer<ItemStack, RenderContext> parse(T element, ParserContext context) throws ParserException;
 }

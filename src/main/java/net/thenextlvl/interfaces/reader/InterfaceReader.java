@@ -55,18 +55,18 @@ public interface InterfaceReader extends ParserContext {
     @FunctionalInterface
     interface TextRenderer {
         @Contract(value = "_, _, _ -> new", pure = true)
-        Component renderText(String text, Audience audience, TagResolver... resolvers);
+        Component renderText(String text, Audience audience, TagResolver... resolvers) throws ParserException;
 
         @Contract(value = "_, _, _ -> new", pure = true)
-        default Component renderText(final JsonElement element, final Audience audience, final TagResolver... resolvers) {
+        default Component renderText(final JsonElement element, final Audience audience, final TagResolver... resolvers) throws ParserException {
             if (element.isJsonObject()) return renderText(element.getAsJsonObject(), audience, resolvers);
             return renderText(element.getAsString(), audience, resolvers);
         }
 
         @Contract(value = "_, _, _ -> new", pure = true)
-        default Component renderText(final JsonObject object, final Audience audience, final TagResolver... resolvers) {
-            final var message = object.get("content").getAsString();
-            return renderText(message, audience, resolveTags(object).resolvers(resolvers).build());
+        default Component renderText(final JsonObject object, final Audience audience, final TagResolver... resolvers) throws ParserException {
+            final var text = ParserConditions.checkNonNull(object.get("content"), "Text 'content' is missing").getAsString();
+            return renderText(text, audience, resolveTags(object).resolvers(resolvers).build());
         }
 
         @SuppressWarnings("PatternValidation")

@@ -9,5 +9,5 @@ import java.util.function.Predicate;
 @FunctionalInterface
 public interface ConditionParser<T extends JsonElement> {
     @Contract(value = "_, _ -> new", pure = true)
-    Predicate<InterfaceSession> parse(T element, ParserContext context);
+    Predicate<InterfaceSession> parse(T element, ParserContext context) throws ParserException;
 }

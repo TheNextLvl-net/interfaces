@@ -7,5 +7,5 @@ import org.jetbrains.annotations.Contract;
 @FunctionalInterface
 public interface ClickActionParser<T extends JsonElement> {
     @Contract(value = "_, _ -> new", pure = true)
-    ClickAction parse(T element, ParserContext context);
+    ClickAction parse(T element, ParserContext context) throws ParserException;
 }

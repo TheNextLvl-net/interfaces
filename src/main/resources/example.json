@@ -27,7 +27,7 @@
       {
         "click_type": "drop",
         "connect": "lobby",
-        "close_inventory": {}
+        "close_interface": {}
       },
       {
         "click_type": "drop_all",

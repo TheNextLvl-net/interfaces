@@ -11,7 +11,9 @@ module net.thenextlvl.interfaces {
     requires net.kyori.adventure;
     requires net.kyori.examination.api;
     requires org.bukkit;
+    requires org.slf4j;
 
     requires static org.jetbrains.annotations;
     requires static org.jspecify;
+    requires com.google.errorprone.annotations;
 }

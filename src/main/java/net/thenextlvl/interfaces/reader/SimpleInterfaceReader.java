@@ -6,7 +6,9 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.identity.Identity;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.thenextlvl.interfaces.ActionItem;
@@ -17,7 +19,7 @@ import net.thenextlvl.interfaces.Layout;
 import net.thenextlvl.interfaces.RenderContext;
 import net.thenextlvl.interfaces.Renderer;
 import net.thenextlvl.interfaces.reader.action.BroadcastActionParser;
-import net.thenextlvl.interfaces.reader.action.CloseInventoryActionParser;
+import net.thenextlvl.interfaces.reader.action.CloseInterfaceActionParser;
 import net.thenextlvl.interfaces.reader.action.CommandActionParser;
 import net.thenextlvl.interfaces.reader.action.ConnectActionParser;
 import net.thenextlvl.interfaces.reader.action.ConsoleCommandActionParser;
@@ -33,9 +35,11 @@ import net.thenextlvl.interfaces.reader.item.LoreItemParser;
 import net.thenextlvl.interfaces.reader.item.NameItemParser;
 import net.thenextlvl.interfaces.reader.item.ProfileItemParser;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.event.inventory.InventoryCloseEvent.Reason;
 import org.bukkit.inventory.ItemStack;
-import org.jspecify.annotations.Nullable;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,16 +48,20 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
+    private static final JavaPlugin plugin = JavaPlugin.getProvidingPlugin(SimpleInterfaceReader.class);
+    private static final Logger logger = plugin.getComponentLogger();
+
     private final Set<RegisteredClickActionParser<?>> clickActionParsers = new CopyOnWriteArraySet<>();
     private final Set<RegisteredActionParser<?>> actionParsers = new CopyOnWriteArraySet<>(Set.of(
             new RegisteredActionParser<>("send_message", JsonElement.class, MessageActionParser.INSTANCE),
@@ -63,7 +71,7 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
             new RegisteredActionParser<>("play_sound", JsonObject.class, SoundActionParser.INSTANCE),
             new RegisteredActionParser<>("transfer", JsonPrimitive.class, TransferActionParser.INSTANCE),
             new RegisteredActionParser<>("connect", JsonPrimitive.class, ConnectActionParser.INSTANCE),
-            new RegisteredActionParser<>("close_inventory", JsonObject.class, CloseInventoryActionParser.INSTANCE)
+            new RegisteredActionParser<>("close_interface", JsonObject.class, CloseInterfaceActionParser.INSTANCE)
     ));
     private final Set<RegisteredConditionParser<?>> conditionParsers = new CopyOnWriteArraySet<>(Set.of(
             new RegisteredConditionParser<>("click_type", JsonPrimitive.class, ClickTypeConditionParser.INSTANCE),
@@ -156,7 +164,12 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
 
     @Override
     public Component renderText(final Audience audience, final JsonElement text, final TagResolver... resolvers) {
-        return renderer.renderText(text, audience, resolvers);
+        try {
+            return renderer.renderText(text, audience, resolvers);
+        } catch (final ParserException e) {
+            logger.warn("Failed to render text for player '{}': {}", audience.getOrDefault(Identity.NAME, "?"), e.getMessage());
+            return Component.text(e.getMessage(), NamedTextColor.RED);
+        }
     }
 
     @Override
@@ -195,17 +208,23 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
 
         for (final var entry : object.entrySet()) {
             if (entry.getKey().length() != 1) continue;
-            if (!entry.getValue().isJsonObject())
-                throw new IllegalStateException("Invalid entry \"" + entry.getKey() + "\": " + entry.getValue());
-            final var jsonObject = entry.getValue().getAsJsonObject();
-            final var renderer = readItemRenderer(jsonObject);
-            get(jsonObject, "click_actions", JsonArray.class)
-                    .flatMap(this::readClickActions)
-                    .ifPresentOrElse(actions -> {
-                        builder.slot(entry.getKey().charAt(0), new ActionItem(renderer, actions));
-                    }, () -> {
-                        layout.mask(entry.getKey().charAt(0), renderer);
-                    });
+            final var character = entry.getKey().charAt(0);
+            if (!entry.getValue().isJsonObject()) logger.warn("Invalid entry '{}' for character '{}': {}",
+                    entry.getKey(), character, entry.getValue());
+            try {
+                final var jsonObject = entry.getValue().getAsJsonObject();
+                final var renderer = readItemRenderer(jsonObject);
+                get(jsonObject, "click_actions", JsonArray.class)
+                        .flatMap(this::readClickActions)
+                        .ifPresentOrElse(actions -> {
+                            builder.slot(character, new ActionItem(renderer, actions));
+                        }, () -> {
+                            layout.mask(character, renderer);
+                        });
+            } catch (final ParserException e) {
+                logger.warn("Failed to parse item '{}': {}", entry.getKey(), e.getMessage());
+                layout.mask(character, context -> ItemStack.of(Material.AIR));
+            }
         }
 
         get(object, "on_open", JsonArray.class)
@@ -222,14 +241,24 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     @Override
     @SuppressWarnings("unchecked")
     public Optional<ClickAction> parseClickActions(final JsonObject object) {
-        final Function<RegisteredClickActionParser<?>, @Nullable ClickAction> function = p -> {
+        final List<ClickAction> results = new ArrayList<>();
+        for (final var p : clickActionParsers) {
             final var parser = (RegisteredClickActionParser<JsonElement>) p;
             final var element = object.get(parser.id());
-            if (!parser.type().isInstance(element)) return null;
-            return parser.parser().parse(parser.type().cast(element), this);
-        };
-        return clickActionParsers.stream().map(function)
-                .filter(Objects::nonNull)
+            if (!parser.type().isInstance(element)) {
+                if (element != null) logger.warn("Click action '{}' expected {}, but got {}", parser.id(),
+                        parser.type().getSimpleName(), element.getClass().getSimpleName());
+                continue;
+            }
+            try {
+                results.add(parser.parser().parse(parser.type().cast(element), this));
+            } catch (final ParserException e) {
+                logger.warn("Failed to parse click action '{}': {}", parser.id(), e.getMessage());
+            } catch (final RuntimeException e) {
+                logger.warn("Failed to parse click action '{}': {}", parser.id(), e.getMessage(), e);
+            }
+        }
+        return results.stream()
                 .reduce(ClickAction::andThen)
                 .map(clickAction -> parseActions(object)
                         .map(session -> (ClickAction) session::accept)
@@ -240,67 +269,118 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     }
 
     @Override
-    @SuppressWarnings({"unchecked", "NullableProblems"})
+    @SuppressWarnings("unchecked")
     public Optional<Consumer<InterfaceSession>> parseActions(final JsonObject object) {
-        final Function<RegisteredActionParser<?>, @Nullable Consumer<InterfaceSession>> function = p -> {
+        final List<Consumer<InterfaceSession>> results = new ArrayList<>();
+        for (final var p : actionParsers) {
             final var parser = (RegisteredActionParser<JsonElement>) p;
             final var element = object.get(parser.id());
-            if (!parser.type().isInstance(element)) return null;
-            return parser.parser().parse(parser.type().cast(element), this);
-        };
-        return actionParsers.stream().map(function)
-                .filter(Objects::nonNull)
-                .reduce(Consumer::andThen);
+            if (!parser.type().isInstance(element)) {
+                if (element != null) logger.warn("Action '{}' expected {}, but got {}", parser.id(),
+                        parser.type().getSimpleName(), element.getClass().getSimpleName());
+                continue;
+            }
+            try {
+                results.add(parser.parser().parse(parser.type().cast(element), this));
+            } catch (final ParserException e) {
+                logger.warn("Failed to parse action '{}': {}", parser.id(), e.getMessage());
+            } catch (final RuntimeException e) {
+                logger.warn("Failed to parse action '{}': {}", parser.id(), e.getMessage(), e);
+            }
+        }
+        return results.stream().reduce(Consumer::andThen);
     }
 
     @Override
-    @SuppressWarnings({"unchecked", "NullableProblems"})
+    @SuppressWarnings("unchecked")
     public Optional<Predicate<InterfaceSession>> parseConditions(final JsonObject object) {
-        final Function<RegisteredConditionParser<?>, @Nullable Predicate<InterfaceSession>> function = p -> {
+        final List<Predicate<InterfaceSession>> results = new ArrayList<>();
+        for (final var p : conditionParsers) {
             final var parser = (RegisteredConditionParser<JsonElement>) p;
             final var element = object.get(parser.id());
-            if (!parser.type().isInstance(element)) return null;
-            return parser.parser().parse(parser.type().cast(element), this);
-        };
-        return conditionParsers.stream().map(function)
-                .filter(Objects::nonNull)
-                .reduce(Predicate::and);
+            if (!parser.type().isInstance(element)) {
+                if (element != null) logger.warn("Condition '{}' expected {}, but got {}", parser.id(),
+                        parser.type().getSimpleName(), element.getClass().getSimpleName());
+                continue;
+            }
+            try {
+                results.add(parser.parser().parse(parser.type().cast(element), this));
+            } catch (final ParserException e) {
+                logger.warn("Failed to parse condition '{}': {}", parser.id(), e.getMessage());
+            } catch (final RuntimeException e) {
+                logger.warn("Failed to parse condition '{}': {}", parser.id(), e.getMessage(), e);
+            }
+        }
+        return results.stream().reduce(Predicate::and);
     }
 
-    @SuppressWarnings({"unchecked", "NullableProblems"})
+    @SuppressWarnings("unchecked")
     private Optional<Consumer<ItemStack>> parseItems(final JsonObject object) {
-        final Function<RegisteredItemParser<?>, @Nullable Consumer<ItemStack>> function = p -> {
+        final List<Consumer<ItemStack>> results = new ArrayList<>();
+        for (final var p : itemParsers) {
             final var parser = (RegisteredItemParser<JsonElement>) p;
             final var element = object.get(parser.id());
-            if (!parser.type().isInstance(element)) return null;
-            return parser.parser().parse(parser.type().cast(element), this);
-        };
-        return itemParsers.stream().map(function)
-                .filter(Objects::nonNull)
-                .reduce(Consumer::andThen);
+            if (!parser.type().isInstance(element)) {
+                if (element != null) logger.warn("Item property '{}' expected {}, but got {}", parser.id(),
+                        parser.type().getSimpleName(), element.getClass().getSimpleName());
+                continue;
+            }
+            try {
+                results.add(parser.parser().parse(parser.type().cast(element), this));
+            } catch (final ParserException e) {
+                logger.warn("Failed to parse item property '{}': {}", parser.id(), e.getMessage());
+            } catch (final RuntimeException e) {
+                logger.warn("Failed to parse item property '{}': {}", parser.id(), e.getMessage(), e);
+            }
+        }
+        return results.stream().reduce(Consumer::andThen);
     }
 
-    @SuppressWarnings({"unchecked", "NullableProblems"})
+    @SuppressWarnings("unchecked")
     private Optional<BiConsumer<ItemStack, RenderContext>> parseDynamicItems(final JsonObject object) {
-        final Function<RegisteredDynamicItemParser<?>, @Nullable BiConsumer<ItemStack, RenderContext>> function = p -> {
+        final List<BiConsumer<ItemStack, RenderContext>> results = new ArrayList<>();
+        for (final var p : dynamicItemParsers) {
             final var parser = (RegisteredDynamicItemParser<JsonElement>) p;
             final var element = object.get(parser.id());
-            if (!parser.type().isInstance(element)) return null;
-            return parser.parser().parse(parser.type().cast(element), this);
-        };
-        return dynamicItemParsers.stream().map(function)
-                .filter(Objects::nonNull)
-                .reduce(BiConsumer::andThen);
+            if (!parser.type().isInstance(element)) {
+                if (element != null) logger.warn("Dynamic item property '{}' expected {}, but got {}", parser.id(),
+                        parser.type().getSimpleName(), element.getClass().getSimpleName());
+                continue;
+            }
+            try {
+                results.add(parser.parser().parse(parser.type().cast(element), this));
+            } catch (final ParserException e) {
+                logger.warn("Failed to parse dynamic item property '{}': {}", parser.id(), e.getMessage());
+            } catch (final RuntimeException e) {
+                logger.warn("Failed to parse dynamic item property '{}': {}", parser.id(), e.getMessage(), e);
+            }
+        }
+        return results.stream().reduce(BiConsumer::andThen);
     }
 
     private <T extends JsonElement> Optional<T> get(final JsonObject object, final String key, final Class<T> type) {
         return Optional.ofNullable(object.get(key)).filter(type::isInstance).map(type::cast);
     }
 
-    private Renderer readItemRenderer(final JsonObject object) {
+    private boolean isKnownItemKey(final String key) {
+        if ("item".equals(key) || "click_actions".equals(key)) return true;
+        return itemParsers.stream().anyMatch(p -> p.id().equals(key))
+                || dynamicItemParsers.stream().anyMatch(p -> p.id().equals(key));
+    }
+
+    private boolean isKnownActionKey(final String key) {
+        return actionParsers.stream().anyMatch(p -> p.id().equals(key))
+                || clickActionParsers.stream().anyMatch(p -> p.id().equals(key))
+                || conditionParsers.stream().anyMatch(p -> p.id().equals(key));
+    }
+
+    private Renderer readItemRenderer(final JsonObject object) throws ParserException {
+        for (final var key : object.keySet()) {
+            if (!isKnownItemKey(key)) logger.warn("Unknown item key '{}': no parser available", key);
+        }
         final var item = get(object, "item", JsonPrimitive.class)
                 .map(JsonPrimitive::getAsString)
-                .orElseThrow(() -> new IllegalStateException("Missing or invalid item"));
+                .orElseThrow(() -> new ParserException("Missing or invalid item"));
         final var itemStack = Bukkit.getItemFactory().createItemStack(item);
         parseItems(object).ifPresent(parser -> parser.accept(itemStack));
         return parseDynamicItems(object).<Renderer>map(consumer -> context -> {
@@ -314,11 +394,16 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
         return array.asList().stream()
                 .filter(JsonObject.class::isInstance)
                 .map(JsonObject.class::cast)
-                .map(object -> parseClickActions(object).map(actions ->
-                        parseConditions(object).<ClickAction>map(conditions -> context -> {
-                            if (conditions.test(context)) actions.click(context);
-                        }).orElse(actions)
-                ).orElse(null))
+                .map(object -> {
+                    for (final var key : object.keySet()) {
+                        if (!isKnownActionKey(key)) logger.warn("Unknown click action '{}': no parser available", key);
+                    }
+                    return parseClickActions(object).map(actions ->
+                            parseConditions(object).<ClickAction>map(conditions -> context -> {
+                                if (conditions.test(context)) actions.click(context);
+                            }).orElse(actions)
+                    ).orElse(null);
+                })
                 .filter(Objects::nonNull)
                 .reduce(ClickAction::andThen);
     }
@@ -327,11 +412,16 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
         return array.asList().stream()
                 .filter(JsonObject.class::isInstance)
                 .map(JsonObject.class::cast)
-                .map(object -> parseActions(object).map(actions ->
-                        parseConditions(object).<Consumer<InterfaceSession>>map(conditions -> session -> {
-                            if (conditions.test(session)) actions.accept(session);
-                        }).orElse(actions)
-                ).orElse(null))
+                .map(object -> {
+                    for (final var key : object.keySet()) {
+                        if (!isKnownActionKey(key)) logger.warn("Unknown click action '{}': no parser available", key);
+                    }
+                    return parseActions(object).map(actions ->
+                            parseConditions(object).<Consumer<InterfaceSession>>map(conditions -> session -> {
+                                if (conditions.test(session)) actions.accept(session);
+                            }).orElse(actions)
+                    ).orElse(null);
+                })
                 .filter(Objects::nonNull)
                 .reduce(Consumer::andThen);
     }

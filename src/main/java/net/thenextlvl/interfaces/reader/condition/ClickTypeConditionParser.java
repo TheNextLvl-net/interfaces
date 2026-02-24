@@ -5,6 +5,7 @@ import net.thenextlvl.interfaces.ClickContext;
 import net.thenextlvl.interfaces.InterfaceSession;
 import net.thenextlvl.interfaces.reader.ConditionParser;
 import net.thenextlvl.interfaces.reader.ParserContext;
+import net.thenextlvl.interfaces.reader.ParserException;
 import org.bukkit.event.inventory.ClickType;
 
 import java.util.Locale;
@@ -15,7 +16,7 @@ import java.util.function.Predicate;
 public final class ClickTypeConditionParser implements ConditionParser<JsonPrimitive> {
     public static final ClickTypeConditionParser INSTANCE = new ClickTypeConditionParser();
 
-    private static final Map<String, Predicate<ClickType>> CLICK_TYPES = Map.ofEntries(
+    private static final Map<String, Predicate<ClickType>> clickTypes = Map.ofEntries(
             Map.entry("any", clickType -> true),
             Map.entry("any_left", ClickType::isLeftClick),
             Map.entry("any_right", ClickType::isRightClick),
@@ -42,7 +43,7 @@ public final class ClickTypeConditionParser implements ConditionParser<JsonPrimi
     }
 
     @Override
-    public Predicate<InterfaceSession> parse(final JsonPrimitive element, final ParserContext context) {
+    public Predicate<InterfaceSession> parse(final JsonPrimitive element, final ParserContext context) throws ParserException {
         final var value = element.getAsString()
                 .toLowerCase(Locale.ROOT)
                 .replace("-", "_")
@@ -50,9 +51,9 @@ public final class ClickTypeConditionParser implements ConditionParser<JsonPrimi
         final var invert = value.startsWith("!");
 
         final var key = invert ? value.substring(1) : value;
-        final var type = Optional.ofNullable(CLICK_TYPES.get(key))
+        final var type = Optional.ofNullable(clickTypes.get(key))
                 .map(clickTypePredicate -> invert ? clickTypePredicate.negate() : clickTypePredicate)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown click type: " + key));
+                .orElseThrow(() -> new ParserException("Unknown click type: %s", key));
 
         return session -> {
             if (session instanceof final ClickContext clickContext)

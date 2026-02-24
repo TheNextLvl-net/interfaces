@@ -4,6 +4,7 @@ import com.google.gson.JsonPrimitive;
 import net.thenextlvl.interfaces.InterfaceSession;
 import net.thenextlvl.interfaces.reader.ActionParser;
 import net.thenextlvl.interfaces.reader.ParserContext;
+import net.thenextlvl.interfaces.reader.ParserException;
 
 import java.util.function.Consumer;
 
@@ -14,14 +15,14 @@ public final class TransferActionParser implements ActionParser<JsonPrimitive> {
     }
 
     @Override
-    public Consumer<InterfaceSession> parse(final JsonPrimitive primitive, final ParserContext context) {
+    public Consumer<InterfaceSession> parse(final JsonPrimitive primitive, final ParserContext context) throws ParserException {
         try {
             final var parts = primitive.getAsString().split(":", 2);
             final var host = parts[0];
             final var port = parts.length == 2 ? Integer.parseInt(parts[1]) : 25565;
             return session -> session.player().transfer(host, port);
         } catch (final NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid port: " + primitive.getAsString(), e);
+            throw new ParserException("Invalid port: " + primitive.getAsString(), e);
         }
     }
 }

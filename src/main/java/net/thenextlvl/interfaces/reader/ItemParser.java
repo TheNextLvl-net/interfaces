@@ -9,5 +9,5 @@ import java.util.function.Consumer;
 @FunctionalInterface
 public interface ItemParser<T extends JsonElement> {
     @Contract(value = "_, _ -> new", pure = true)
-    Consumer<ItemStack> parse(T element, ParserContext context);
+    Consumer<ItemStack> parse(T element, ParserContext context) throws ParserException;
 }
