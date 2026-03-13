@@ -38,6 +38,20 @@ public sealed interface Interface permits SimpleInterface {
     @Contract(pure = true)
     Map<Character, ActionItem> slots();
 
+    /**
+     * Opens the interface for the player, preserving the session state of an existing session.
+     *
+     * @param player  the player to open the interface for
+     * @param session the session to use for the interface
+     * @since 0.3.0
+     */
+    void open(Player player, InterfaceSession session);
+
+    /**
+     * Opens the interface for the player.
+     *
+     * @param player the player to open the interface for
+     */
     void open(Player player);
 
     @Contract(value = " -> new", pure = true)
