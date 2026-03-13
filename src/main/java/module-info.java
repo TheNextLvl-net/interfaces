@@ -6,6 +6,7 @@ module net.thenextlvl.interfaces {
     exports net.thenextlvl.interfaces;
 
     requires com.google.common;
+    requires com.google.errorprone.annotations;
     requires com.google.gson;
     requires net.kyori.adventure.text.minimessage;
     requires net.kyori.adventure;
@@ -15,5 +16,4 @@ module net.thenextlvl.interfaces {
 
     requires static org.jetbrains.annotations;
     requires static org.jspecify;
-    requires com.google.errorprone.annotations;
 }
