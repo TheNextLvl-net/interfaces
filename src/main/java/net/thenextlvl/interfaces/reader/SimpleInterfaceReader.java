@@ -93,6 +93,26 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
         return MiniMessage.miniMessage().deserialize(text, resolvers);
     };
 
+    @Override
+    public Component renderText(final Audience audience, final JsonElement text, final TagResolver... resolvers) {
+        try {
+            return renderer.renderText(text, audience, resolvers);
+        } catch (final ParserException e) {
+            logger.warn("Failed to render text for player '{}': {}", audience.getOrDefault(Identity.NAME, "?"), e.getMessage());
+            return Component.text(e.getMessage(), NamedTextColor.RED);
+        }
+    }
+
+    @Override
+    public Component renderText(final Audience audience, final String text, final TagResolver... resolvers) {
+        try {
+            return renderer.renderText(text, audience, resolvers);
+        } catch (final ParserException e) {
+            logger.warn("Failed to render text for player '{}': {}", audience.getOrDefault(Identity.NAME, "?"), e.getMessage());
+            return Component.text(e.getMessage(), NamedTextColor.RED);
+        }
+    }
+
     private record RegisteredClickActionParser<T extends JsonElement>(
             String id,
             Class<T> type,
@@ -162,16 +182,6 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     public InterfaceReader textRenderer(final TextRenderer renderer) {
         this.renderer = renderer;
         return this;
-    }
-
-    @Override
-    public Component renderText(final Audience audience, final JsonElement text, final TagResolver... resolvers) {
-        try {
-            return renderer.renderText(text, audience, resolvers);
-        } catch (final ParserException e) {
-            logger.warn("Failed to render text for player '{}': {}", audience.getOrDefault(Identity.NAME, "?"), e.getMessage());
-            return Component.text(e.getMessage(), NamedTextColor.RED);
-        }
     }
 
     @Override
