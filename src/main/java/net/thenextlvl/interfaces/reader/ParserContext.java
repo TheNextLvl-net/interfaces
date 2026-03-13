@@ -28,4 +28,10 @@ public interface ParserContext {
 
     @Contract(value = "_, _, _ -> new", pure = true)
     Component renderText(Audience audience, JsonElement element, TagResolver... resolvers);
+
+    /**
+     * @since 0.3.0
+     */
+    @Contract(value = "_, _, _ -> new", pure = true)
+    Component renderText(Audience audience, String text, TagResolver... resolvers);
 }
