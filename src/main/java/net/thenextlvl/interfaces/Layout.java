@@ -28,6 +28,12 @@ sealed public interface Layout permits SimpleLayout {
     @Contract(pure = true)
     String pattern();
 
+    @Contract(pure = true)
+    int rows();
+
+    @Contract(pure = true)
+    int size();
+
     @Contract(value = " -> new", pure = true)
     Builder toBuilder();
 

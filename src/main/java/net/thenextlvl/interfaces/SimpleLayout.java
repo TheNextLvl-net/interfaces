@@ -11,20 +11,36 @@ import java.util.function.BiConsumer;
 final class SimpleLayout implements Layout {
     private final String pattern;
     private final Map<Character, Renderer> items;
+    private final int rows;
+    private final int size;
 
     private SimpleLayout(final String pattern, final Map<Character, Renderer> items) {
         this.pattern = pattern;
         this.items = Map.copyOf(items);
+        this.rows = readRows(pattern);
+        this.size = readSize(pattern);
     }
 
     public SimpleLayout(final String... pattern) {
         this.pattern = String.join("\n", pattern);
         this.items = Map.of();
+        this.rows = readRows(this.pattern);
+        this.size = readSize(this.pattern);
     }
 
     public SimpleLayout() {
         this.pattern = "";
         this.items = Map.of();
+        this.rows = 0;
+        this.size = 0;
+    }
+
+    private int readRows(String pattern) {
+        return (int) pattern.chars().filter(c -> c == '\n').count() + 1;
+    }
+
+    private int readSize(String pattern) {
+        return (int) pattern.chars().filter(c -> c != '\n').count();
     }
 
     @Override
@@ -55,6 +71,16 @@ final class SimpleLayout implements Layout {
     @Override
     public String pattern() {
         return pattern;
+    }
+
+    @Override
+    public int rows() {
+        return rows;
+    }
+
+    @Override
+    public int size() {
+        return size;
     }
 
     @Override

@@ -54,7 +54,7 @@ final class SimpleInterface implements Interface {
         var slot = 0;
 
         final var chars = layout.pattern().toCharArray();
-        this.items = new Item[chars.length];
+        this.items = new Item[layout.size()];
         final var indices = new HashMap<Character, Integer>();
 
         for (final var c : chars) {
