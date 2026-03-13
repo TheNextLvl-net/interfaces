@@ -55,7 +55,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
@@ -315,8 +317,8 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     }
 
     @SuppressWarnings("unchecked")
-    private Optional<Consumer<ItemStack>> parseItems(final JsonObject object) {
-        final List<Consumer<ItemStack>> results = new ArrayList<>();
+    private Optional<Function<ItemStack, ItemStack>> parseItems(final JsonObject object) {
+        final List<Function<ItemStack, ItemStack>> results = new ArrayList<>();
         for (final var p : itemParsers) {
             final var parser = (RegisteredItemParser<JsonElement>) p;
             final var element = object.get(parser.id());
@@ -333,12 +335,12 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
                 logger.warn("Failed to parse item property '{}': {}", parser.id(), e.getMessage(), e);
             }
         }
-        return results.stream().reduce(Consumer::andThen);
+        return results.stream().reduce(Function::andThen);
     }
 
     @SuppressWarnings("unchecked")
-    private Optional<BiConsumer<ItemStack, RenderContext>> parseDynamicItems(final JsonObject object) {
-        final List<BiConsumer<ItemStack, RenderContext>> results = new ArrayList<>();
+    private Optional<BiFunction<ItemStack, RenderContext, ItemStack>> parseDynamicItems(final JsonObject object) {
+        final List<BiFunction<ItemStack, RenderContext, ItemStack>> results = new ArrayList<>();
         for (final var p : dynamicItemParsers) {
             final var parser = (RegisteredDynamicItemParser<JsonElement>) p;
             final var element = object.get(parser.id());
@@ -355,7 +357,7 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
                 logger.warn("Failed to parse dynamic item property '{}': {}", parser.id(), e.getMessage(), e);
             }
         }
-        return results.stream().reduce(BiConsumer::andThen);
+        return results.stream().reduce((first, second) -> (item, context) -> second.apply(first.apply(item, context), context));
     }
 
     private <T extends JsonElement> Optional<T> get(final JsonObject object, final String key, final Class<T> type) {
@@ -381,12 +383,15 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
         final var item = get(object, "item", JsonPrimitive.class)
                 .map(JsonPrimitive::getAsString)
                 .orElseThrow(() -> new ParserException("Missing or invalid item"));
-        final var itemStack = Bukkit.getItemFactory().createItemStack(item);
-        parseItems(object).ifPresent(parser -> parser.accept(itemStack));
-        return parseDynamicItems(object).<Renderer>map(consumer -> context -> {
+
+        final var created = Bukkit.getItemFactory().createItemStack(item);
+        final var itemStack = parseItems(object)
+                .map(parser -> parser.apply(created))
+                .orElse(created);
+
+        return parseDynamicItems(object).<Renderer>map(function -> context -> {
             final var clone = itemStack.clone();
-            consumer.accept(clone, context);
-            return clone;
+            return function.apply(clone, context);
         }).orElseGet(() -> context -> itemStack.clone());
     }
 

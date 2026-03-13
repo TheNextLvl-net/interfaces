@@ -5,10 +5,13 @@ import net.thenextlvl.interfaces.RenderContext;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Contract;
 
-import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 
 @FunctionalInterface
 public interface DynamicItemParser<T extends JsonElement> {
+    /**
+     * @since 0.3.0
+     */
     @Contract(value = "_, _ -> new", pure = true)
-    BiConsumer<ItemStack, RenderContext> parse(T element, ParserContext context) throws ParserException;
+    BiFunction<ItemStack, RenderContext, ItemStack> parse(T element, ParserContext context) throws ParserException;
 }

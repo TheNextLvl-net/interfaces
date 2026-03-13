@@ -9,7 +9,7 @@ import net.thenextlvl.interfaces.reader.ParserContext;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.Base64;
-import java.util.function.Consumer;
+import java.util.function.Function;
 
 public final class ProfileItemParser implements ItemParser<JsonPrimitive> {
     public static final ProfileItemParser INSTANCE = new ProfileItemParser();
@@ -19,7 +19,7 @@ public final class ProfileItemParser implements ItemParser<JsonPrimitive> {
 
     @Override
     @SuppressWarnings("PatternValidation")
-    public Consumer<ItemStack> parse(final JsonPrimitive element, final ParserContext context) {
+    public Function<ItemStack, ItemStack> parse(final JsonPrimitive element, final ParserContext context) {
         final var profile = element.getAsString();
         final var builder = ResolvableProfile.resolvableProfile();
         if (profile.matches("^[!-~]{0,16}$")) builder.name(profile);
@@ -29,6 +29,9 @@ public final class ProfileItemParser implements ItemParser<JsonPrimitive> {
         } catch (final Exception ignored) {
         }
         final var resolved = builder.build();
-        return itemStack -> itemStack.setData(DataComponentTypes.PROFILE, resolved);
+        return itemStack -> {
+            itemStack.setData(DataComponentTypes.PROFILE, resolved);
+            return itemStack;
+        };
     }
 }

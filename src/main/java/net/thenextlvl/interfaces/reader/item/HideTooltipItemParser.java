@@ -7,7 +7,7 @@ import net.thenextlvl.interfaces.reader.ItemParser;
 import net.thenextlvl.interfaces.reader.ParserContext;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.function.Consumer;
+import java.util.function.Function;
 
 public final class HideTooltipItemParser implements ItemParser<JsonPrimitive> {
     public static final HideTooltipItemParser INSTANCE = new HideTooltipItemParser();
@@ -16,9 +16,12 @@ public final class HideTooltipItemParser implements ItemParser<JsonPrimitive> {
     }
 
     @Override
-    public Consumer<ItemStack> parse(final JsonPrimitive element, final ParserContext context) {
+    public Function<ItemStack, ItemStack> parse(final JsonPrimitive element, final ParserContext context) {
         final var hide = element.getAsBoolean();
         final var display = TooltipDisplay.tooltipDisplay().hideTooltip(hide);
-        return itemStack -> itemStack.setData(DataComponentTypes.TOOLTIP_DISPLAY, display);
+        return itemStack -> {
+            itemStack.setData(DataComponentTypes.TOOLTIP_DISPLAY, display);
+            return itemStack;
+        };
     }
 }
