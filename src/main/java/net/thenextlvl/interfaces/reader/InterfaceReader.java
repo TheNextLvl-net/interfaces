@@ -52,6 +52,12 @@ public interface InterfaceReader extends ParserContext {
     @Contract(value = "_ -> new", pure = true)
     Interface read(JsonObject object) throws IllegalStateException;
 
+    /**
+     * @since 0.3.0
+     */
+    @Contract(value = "_ -> new", pure = true)
+    Interface readResource(String path) throws IOException;
+
     @FunctionalInterface
     interface TextRenderer {
         @Contract(value = "_, _, _ -> new", pure = true)
