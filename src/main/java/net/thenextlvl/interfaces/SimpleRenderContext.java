@@ -3,6 +3,8 @@ package net.thenextlvl.interfaces;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.InventoryView;
 
+import java.util.Map;
+
 non-sealed class SimpleRenderContext extends SimpleInterface.Session implements RenderContext {
     private final int index;
     private final int row;
@@ -13,12 +15,13 @@ non-sealed class SimpleRenderContext extends SimpleInterface.Session implements 
             final Player player,
             final InventoryView view,
             final SimpleInterface interface_,
+            final Map<String, Object> state,
             final int index,
             final int row,
             final int column,
             final int slot
     ) {
-        super(player, view, interface_);
+        super(player, view, interface_, state);
         this.index = index;
         this.row = row;
         this.column = column;

@@ -15,7 +15,10 @@ import org.jspecify.annotations.Nullable;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -105,9 +108,18 @@ final class SimpleInterface implements Interface {
     }
 
     @Override
+    public void open(final Player player, final InterfaceSession existing) {
+        open(player, ((Session) existing).state);
+    }
+
+    @Override
     public void open(final Player player) {
+        open(player, new ConcurrentHashMap<>());
+    }
+
+    public void open(final Player player, final Map<String, Object> state) {
         final var view = type.create(player, title(player));
-        final var session = new Session(player, view, this);
+        final var session = new Session(player, view, this, state);
         session.refresh();
         InterfaceHandler.INSTANCE.setView(player, session);
         player.openInventory(view);
@@ -134,6 +146,7 @@ final class SimpleInterface implements Interface {
                 session.player(),
                 event.getView(),
                 this,
+                session.state,
                 item.index(),
                 item.row(),
                 item.column(),
@@ -155,15 +168,16 @@ final class SimpleInterface implements Interface {
     }
 
     public static sealed class Session implements InterfaceSession permits SimpleRenderContext {
-        private final Map<String, Object> state = new HashMap<>();
+        private final Map<String, Object> state;
         private final SimpleInterface interface_;
         private final InventoryView view;
         private final Player player;
 
-        Session(final Player player, final InventoryView view, final SimpleInterface interface_) {
+        Session(final Player player, final InventoryView view, final SimpleInterface interface_, final Map<String, Object> state) {
             this.interface_ = interface_;
             this.player = player;
             this.view = view;
+            this.state = state;
         }
 
         @Override
@@ -189,8 +203,37 @@ final class SimpleInterface implements Interface {
         }
 
         @Override
-        public void state(final String key, final Object value) {
-            state.put(key, value);
+        public <T> Optional<T> state(final String key, final Class<T> type) {
+            return Optional.ofNullable(state.get(key)).filter(type::isInstance).map(type::cast);
+        }
+
+        @Override
+        public void state(final String key, final @Nullable Object value) {
+            if (value == null) state.remove(key);
+            else state.put(key, value);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public @Nullable <T> T computeState(final String key, final BiFunction<String, @Nullable T, @Nullable T> remappingFunction) {
+            return (T) state.compute(key, (s, o) -> remappingFunction.apply(s, (T) o));
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public @Nullable <T> T computeStateIfAbsent(final String key, final Function<String, @Nullable T> remappingFunction) {
+            return (T) state.computeIfAbsent(key, remappingFunction);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public <T> @Nullable T computeStateIfPresent(final String key, final BiFunction<String, T, @Nullable T> remappingFunction) {
+            return (T) state.computeIfPresent(key, (s, o) -> remappingFunction.apply(s, (T) o));
+        }
+
+        @Override
+        public boolean hasState(final String key) {
+            return state.containsKey(key);
         }
 
         @Override
@@ -218,7 +261,7 @@ final class SimpleInterface implements Interface {
                 return;
             }
 
-            final var context = new SimpleRenderContext(player, view, interface_, item.index(), item.row(), item.column(), slot);
+            final var context = new SimpleRenderContext(player, view, interface_, state, item.index(), item.row(), item.column(), slot);
             view.setItem(slot, item.renderer().render(context));
         }
     }
