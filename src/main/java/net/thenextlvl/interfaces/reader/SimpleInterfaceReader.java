@@ -251,6 +251,13 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     }
 
     @Override
+    public Interface readResource(final String path) throws IOException {
+        try (final var resource = getClass().getClassLoader().getResourceAsStream(path)) {
+            return read(Objects.requireNonNull(resource, "Missing resource: " + path));
+        }
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public Optional<ClickAction> parseClickActions(final JsonObject object) {
         final List<ClickAction> results = new ArrayList<>();
