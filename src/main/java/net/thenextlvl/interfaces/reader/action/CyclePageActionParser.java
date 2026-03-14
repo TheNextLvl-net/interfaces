@@ -15,15 +15,8 @@ public final class CyclePageActionParser implements ClickActionParser<JsonPrimit
 
     @Override
     public ClickAction parse(final JsonPrimitive primitive, final ParserContext context) throws ParserException {
-        final var value = primitive.getAsString();
-        return PageAction.changePage(parsePageValue(value)); // todo: use arithmetics with context
-    }
-
-    private static int parsePageValue(final String value) throws ParserException {
-        try {
-            return Integer.parseInt(value);
-        } catch (final NumberFormatException e) {
-            throw new ParserException("Invalid change_page value '%s': expected 'next', 'previous', or a number (e.g. '+5', '-5', '9')", value);
-        }
+        // todo: use arithmetics with context
+        final var value = primitive.getAsInt();
+        return PageAction.changePage(value);
     }
 }
