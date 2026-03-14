@@ -23,4 +23,22 @@ public final class PageAction {
             if (session instanceof final PaginatedSession paginated) paginated.previousPage();
         };
     }
+
+    @Contract(value = "_ -> new", pure = true)
+    public static ClickAction changePage(int value) {
+        return context -> {
+            final var session = InterfaceHandler.INSTANCE.getSession(context.player());
+            if (!(session instanceof final PaginatedSession paginated)) return;
+            paginated.page(Math.clamp(paginated.page() + value, 0, paginated.pageCount() - 1));
+        };
+    }
+
+    @Contract(value = "_ -> new", pure = true)
+    public static ClickAction setPage(int value) {
+        return context -> {
+            final var session = InterfaceHandler.INSTANCE.getSession(context.player());
+            if (!(session instanceof final PaginatedSession paginated)) return;
+            paginated.page(Math.clamp(value, 0, paginated.pageCount() - 1));
+        };
+    }
 }
