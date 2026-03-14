@@ -51,7 +51,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -319,7 +319,7 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     @Override
     @SuppressWarnings("unchecked")
     public Optional<ClickAction> parseClickActions(final JsonObject object) {
-        final List<ClickAction> results = new ArrayList<>();
+        final List<ClickAction> results = new LinkedList<>();
         for (final var p : clickActionParsers) {
             final var parser = (RegisteredClickActionParser<JsonElement>) p;
             final var element = object.get(parser.id());
@@ -329,7 +329,7 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
                 continue;
             }
             try {
-                results.add(parser.parser().parse(parser.type().cast(element), this));
+                results.addFirst(parser.parser().parse(parser.type().cast(element), this));
             } catch (final ParserException e) {
                 logger.warn("Failed to parse click action '{}': {}", parser.id(), e.getMessage());
             } catch (final RuntimeException e) {
@@ -349,7 +349,7 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     @Override
     @SuppressWarnings("unchecked")
     public Optional<Consumer<InterfaceSession>> parseActions(final JsonObject object) {
-        final List<Consumer<InterfaceSession>> results = new ArrayList<>();
+        final List<Consumer<InterfaceSession>> results = new LinkedList<>();
         for (final var p : actionParsers) {
             final var parser = (RegisteredActionParser<JsonElement>) p;
             final var element = object.get(parser.id());
@@ -359,7 +359,7 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
                 continue;
             }
             try {
-                results.add(parser.parser().parse(parser.type().cast(element), this));
+                results.addFirst(parser.parser().parse(parser.type().cast(element), this));
             } catch (final ParserException e) {
                 logger.warn("Failed to parse action '{}': {}", parser.id(), e.getMessage());
             } catch (final RuntimeException e) {
@@ -372,7 +372,7 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     @Override
     @SuppressWarnings("unchecked")
     public Optional<Predicate<InterfaceSession>> parseConditions(final JsonObject object) {
-        final List<Predicate<InterfaceSession>> results = new ArrayList<>();
+        final List<Predicate<InterfaceSession>> results = new LinkedList<>();
         for (final var p : conditionParsers) {
             final var parser = (RegisteredConditionParser<JsonElement>) p;
             final var element = object.get(parser.id());
@@ -382,7 +382,7 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
                 continue;
             }
             try {
-                results.add(parser.parser().parse(parser.type().cast(element), this));
+                results.addFirst(parser.parser().parse(parser.type().cast(element), this));
             } catch (final ParserException e) {
                 logger.warn("Failed to parse condition '{}': {}", parser.id(), e.getMessage());
             } catch (final RuntimeException e) {
@@ -394,7 +394,7 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
 
     @SuppressWarnings("unchecked")
     private Optional<Function<ItemStack, ItemStack>> parseItems(final JsonObject object) {
-        final List<Function<ItemStack, ItemStack>> results = new ArrayList<>();
+        final List<Function<ItemStack, ItemStack>> results = new LinkedList<>();
         for (final var p : itemParsers) {
             final var parser = (RegisteredItemParser<JsonElement>) p;
             final var element = object.get(parser.id());
@@ -404,7 +404,7 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
                 continue;
             }
             try {
-                results.add(parser.parser().parse(parser.type().cast(element), this));
+                results.addFirst(parser.parser().parse(parser.type().cast(element), this));
             } catch (final ParserException e) {
                 logger.warn("Failed to parse item property '{}': {}", parser.id(), e.getMessage());
             } catch (final RuntimeException e) {
@@ -416,7 +416,7 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
 
     @SuppressWarnings("unchecked")
     private Optional<BiFunction<ItemStack, RenderContext, ItemStack>> parseDynamicItems(final JsonObject object) {
-        final List<BiFunction<ItemStack, RenderContext, ItemStack>> results = new ArrayList<>();
+        final List<BiFunction<ItemStack, RenderContext, ItemStack>> results = new LinkedList<>();
         for (final var p : dynamicItemParsers) {
             final var parser = (RegisteredDynamicItemParser<JsonElement>) p;
             final var element = object.get(parser.id());
@@ -426,7 +426,7 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
                 continue;
             }
             try {
-                results.add(parser.parser().parse(parser.type().cast(element), this));
+                results.addFirst(parser.parser().parse(parser.type().cast(element), this));
             } catch (final ParserException e) {
                 logger.warn("Failed to parse dynamic item property '{}': {}", parser.id(), e.getMessage());
             } catch (final RuntimeException e) {
