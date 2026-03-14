@@ -24,7 +24,9 @@ import net.thenextlvl.interfaces.reader.action.CloseInterfaceActionParser;
 import net.thenextlvl.interfaces.reader.action.CommandActionParser;
 import net.thenextlvl.interfaces.reader.action.ConnectActionParser;
 import net.thenextlvl.interfaces.reader.action.ConsoleCommandActionParser;
+import net.thenextlvl.interfaces.reader.action.CyclePageActionParser;
 import net.thenextlvl.interfaces.reader.action.MessageActionParser;
+import net.thenextlvl.interfaces.reader.action.SetPageActionParser;
 import net.thenextlvl.interfaces.reader.action.SoundActionParser;
 import net.thenextlvl.interfaces.reader.action.TransferActionParser;
 import net.thenextlvl.interfaces.reader.condition.ClickTypeConditionParser;
@@ -65,7 +67,10 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     private static final JavaPlugin plugin = JavaPlugin.getProvidingPlugin(SimpleInterfaceReader.class);
     private static final Logger logger = plugin.getComponentLogger();
 
-    private final Set<RegisteredClickActionParser<?>> clickActionParsers = new CopyOnWriteArraySet<>();
+    private final Set<RegisteredClickActionParser<?>> clickActionParsers = new CopyOnWriteArraySet<>(Set.of(
+            new RegisteredClickActionParser<>("cycle_page", JsonPrimitive.class, CyclePageActionParser.INSTANCE),
+            new RegisteredClickActionParser<>("set_page", JsonPrimitive.class, SetPageActionParser.INSTANCE)
+    ));
     private final Set<RegisteredActionParser<?>> actionParsers = new CopyOnWriteArraySet<>(Set.of(
             new RegisteredActionParser<>("send_message", JsonElement.class, MessageActionParser.INSTANCE),
             new RegisteredActionParser<>("broadcast", JsonElement.class, BroadcastActionParser.INSTANCE),
