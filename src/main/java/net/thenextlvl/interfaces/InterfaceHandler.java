@@ -59,7 +59,7 @@ final class InterfaceHandler implements Listener {
         final var session = getSession(player);
         if (session == null || !event.getView().equals(session.view())) return;
 
-        session.getInterface().handleClick(session, event);
+        session.handleClick(event);
         event.setCancelled(true);
     }
 }

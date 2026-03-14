@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public sealed interface InterfaceSession permits RenderContext, SimpleInterface.Session {
+public sealed interface InterfaceSession permits RenderContext, SimpleInterface.Session, PaginatedSession {
     Interface getInterface();
 
     @Contract(pure = true)

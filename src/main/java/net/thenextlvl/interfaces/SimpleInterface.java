@@ -23,18 +23,18 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-final class SimpleInterface implements Interface {
+non-sealed class SimpleInterface implements Interface {
     private final @Nullable BiConsumer<InterfaceSession, InventoryCloseEvent.Reason> onClose;
-    private final @Nullable Function<Player, Component> title;
     private final @Nullable Consumer<InterfaceSession> onOpen;
+
+    protected final @Nullable Function<Player, Component> title;
+    protected final @Nullable Item[] items;
 
     private final Layout layout;
     private final Map<Character, ActionItem> slots;
     private final MenuType type;
 
-    private final @Nullable Item[] items;
-
-    private SimpleInterface(
+    protected SimpleInterface(
             final MenuType type,
             @Nullable final Function<Player, Component> title,
             final Layout layout,
@@ -83,6 +83,11 @@ final class SimpleInterface implements Interface {
     }
 
     @Override
+    public MenuType menuType() {
+        return type;
+    }
+
+    @Override
     public Layout layout() {
         return layout;
     }
@@ -117,12 +122,16 @@ final class SimpleInterface implements Interface {
         open(player, new ConcurrentHashMap<>());
     }
 
-    public void open(final Player player, final Map<String, Object> state) {
+    private void open(final Player player, final Map<String, Object> state) {
         final var view = type.create(player, title(player));
-        final var session = new Session(player, view, this, state);
+        final var session = createSession(player, view, state);
         session.refresh();
         InterfaceHandler.INSTANCE.setView(player, session);
         player.openInventory(view);
+    }
+
+    protected Session createSession(final Player player, final InventoryView view, final Map<String, Object> state) {
+        return new Session(player, view, this, state);
     }
 
     @Override
@@ -167,8 +176,8 @@ final class SimpleInterface implements Interface {
     ) {
     }
 
-    public static sealed class Session implements InterfaceSession permits SimpleRenderContext {
-        private final Map<String, Object> state;
+    public static sealed class Session implements InterfaceSession permits SimplePaginatedInterface.Session, SimpleRenderContext {
+        protected final Map<String, Object> state;
         private final SimpleInterface interface_;
         private final InventoryView view;
         private final Player player;
@@ -187,52 +196,52 @@ final class SimpleInterface implements Interface {
         }
 
         @Override
-        public Player player() {
+        public final Player player() {
             return player;
         }
 
         @Override
-        public InventoryView view() {
+        public final InventoryView view() {
             return view;
         }
 
         @Override
-        public <T> T state(final String key, final Class<T> type, final T fallback) {
+        public final <T> T state(final String key, final Class<T> type, final T fallback) {
             final var value = state.get(key);
             return type.isInstance(value) ? type.cast(value) : fallback;
         }
 
         @Override
-        public <T> Optional<T> state(final String key, final Class<T> type) {
+        public final <T> Optional<T> state(final String key, final Class<T> type) {
             return Optional.ofNullable(state.get(key)).filter(type::isInstance).map(type::cast);
         }
 
         @Override
-        public void state(final String key, final @Nullable Object value) {
+        public final void state(final String key, final @Nullable Object value) {
             if (value == null) state.remove(key);
             else state.put(key, value);
         }
 
         @Override
         @SuppressWarnings("unchecked")
-        public @Nullable <T> T computeState(final String key, final BiFunction<String, @Nullable T, @Nullable T> remappingFunction) {
+        public final @Nullable <T> T computeState(final String key, final BiFunction<String, @Nullable T, @Nullable T> remappingFunction) {
             return (T) state.compute(key, (s, o) -> remappingFunction.apply(s, (T) o));
         }
 
         @Override
         @SuppressWarnings("unchecked")
-        public @Nullable <T> T computeStateIfAbsent(final String key, final Function<String, @Nullable T> remappingFunction) {
+        public final @Nullable <T> T computeStateIfAbsent(final String key, final Function<String, @Nullable T> remappingFunction) {
             return (T) state.computeIfAbsent(key, remappingFunction);
         }
 
         @Override
         @SuppressWarnings("unchecked")
-        public <T> @Nullable T computeStateIfPresent(final String key, final BiFunction<String, T, @Nullable T> remappingFunction) {
+        public final <T> @Nullable T computeStateIfPresent(final String key, final BiFunction<String, T, @Nullable T> remappingFunction) {
             return (T) state.computeIfPresent(key, (s, o) -> remappingFunction.apply(s, (T) o));
         }
 
         @Override
-        public boolean hasState(final String key) {
+        public final boolean hasState(final String key) {
             return state.containsKey(key);
         }
 
@@ -263,6 +272,26 @@ final class SimpleInterface implements Interface {
 
             final var context = new SimpleRenderContext(player, view, interface_, state, item.index(), item.row(), item.column(), slot);
             view.setItem(slot, item.renderer().render(context));
+        }
+
+        public void handleClick(final InventoryClickEvent event) {
+            if (!event.getView().getTopInventory().equals(event.getClickedInventory())) return;
+            final var slot = event.getSlot();
+            if (slot < 0 || slot >= interface_.items.length) return;
+            final var item = interface_.items[slot];
+            if (item == null || item.action() == null) return;
+            final var context = new SimpleClickContext(
+                    player,
+                    event.getView(),
+                    interface_,
+                    state,
+                    item.index(),
+                    item.row(),
+                    item.column(),
+                    slot,
+                    event.getClick()
+            );
+            item.action().click(context);
         }
     }
 
@@ -362,7 +391,8 @@ final class SimpleInterface implements Interface {
         }
 
         @Override
-        public Interface build() throws IllegalArgumentException {
+        @SuppressWarnings("ClassEscapesDefinedScope")
+        public SimpleInterface build() throws IllegalArgumentException {
             Preconditions.checkArgument(type != null, "Menu type not set");
             final var dimensions = this.dimensions.get(type);
             Preconditions.checkArgument(dimensions != null, "Unsupported menu type: %s", type);

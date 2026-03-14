@@ -21,7 +21,13 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public sealed interface Interface permits SimpleInterface {
+public sealed interface Interface permits SimpleInterface, PaginatedInterface {
+    /**
+     * @since 0.3.0
+     */
+    @Contract(pure = true)
+    MenuType menuType();
+
     @Contract(pure = true)
     Layout layout();
 
