@@ -1,0 +1,15 @@
+{
+  "title": "super.cool.translated.title",
+  "pattern": [
+    "# # # # #",
+    "  XXXXX  ",
+    "# XXXXX #",
+    "  XXXXX  ",
+    "# # # # #"
+  ],
+  "content_mask": "X",
+  "#": {
+    "item": "minecraft:gray_stained_glass_pane",
+    "hide_tooltip": true
+  }
+}
