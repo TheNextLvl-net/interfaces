@@ -29,13 +29,13 @@ public sealed interface PaginatedInterface<T> extends Interface permits SimplePa
         Builder<T> mask(char key);
 
         @Contract(value = "_ -> this", mutates = "this")
-        Builder<T> content(Supplier<? extends Collection<? extends T>> supplier);
+        Builder<T> content(Supplier<? extends Collection<T>> supplier);
 
         @Contract(value = "_ -> this", mutates = "this")
-        Builder<T> content(Collection<? extends T> collection);
+        Builder<T> content(Collection<T> collection);
 
         @Contract(value = "_ -> this", mutates = "this")
-        Builder<T> mapper(Function<T, ActionItem> function);
+        Builder<T> transformer(Function<T, ActionItem> function);
 
         @Contract(value = "_ -> this", mutates = "this")
         Builder<T> fallback(ActionItem fallback);

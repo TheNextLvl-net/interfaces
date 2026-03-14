@@ -227,7 +227,7 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
     static final class Builder<T> implements PaginatedInterface.Builder<T> {
         private final SimpleInterface.Builder template;
         private @Nullable Character contentKey;
-        private @Nullable Supplier<? extends Collection<? extends T>> contentSupplier;
+        private @Nullable Supplier<? extends Collection<T>> contentSupplier;
         private @Nullable Function<T, ActionItem> itemFunction;
         private ActionItem fallback = new ActionItem(context -> ItemStack.of(Material.AIR), context -> {
         });
@@ -243,18 +243,18 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
         }
 
         @Override
-        public PaginatedInterface.Builder<T> content(Supplier<? extends Collection<? extends T>> supplier) {
+        public PaginatedInterface.Builder<T> content(Supplier<? extends Collection<T>> supplier) {
             this.contentSupplier = supplier;
             return this;
         }
 
         @Override
-        public PaginatedInterface.Builder<T> content(Collection<? extends T> collection) {
+        public PaginatedInterface.Builder<T> content(Collection<T> collection) {
             return content(() -> collection);
         }
 
         @Override
-        public PaginatedInterface.Builder<T> mapper(Function<T, ActionItem> function) {
+        public PaginatedInterface.Builder<T> transformer(Function<T, ActionItem> function) {
             this.itemFunction = function;
             return this;
         }

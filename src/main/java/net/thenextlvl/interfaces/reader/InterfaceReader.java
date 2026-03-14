@@ -60,19 +60,19 @@ public interface InterfaceReader extends ParserContext {
     Interface.Builder readResource(String path) throws IOException;
 
     @Contract(value = "_ -> new", pure = true)
-    PaginatedInterface.Builder<?> readPaginated(Path path) throws IOException, JsonIOException, JsonSyntaxException;
+    <T> PaginatedInterface.Builder<T> readPaginated(Path path) throws IOException, JsonIOException, JsonSyntaxException;
 
     @Contract(value = "_ -> new", pure = true)
-    PaginatedInterface.Builder<?> readPaginated(Reader reader) throws JsonIOException, JsonSyntaxException;
+    <T> PaginatedInterface.Builder<T> readPaginated(Reader reader) throws JsonIOException, JsonSyntaxException;
 
     @Contract(value = "_ -> new", pure = true)
-    PaginatedInterface.Builder<?> readPaginated(InputStream input) throws JsonIOException, JsonSyntaxException, IOException;
+    <T> PaginatedInterface.Builder<T> readPaginated(InputStream input) throws JsonIOException, JsonSyntaxException, IOException;
 
     @Contract(value = "_ -> new", pure = true)
-    PaginatedInterface.Builder<?> readPaginated(JsonObject object) throws IllegalStateException;
+    <T> PaginatedInterface.Builder<T> readPaginated(JsonObject object) throws IllegalStateException;
 
     @Contract(value = "_ -> new", pure = true)
-    PaginatedInterface.Builder<?> readPaginatedResource(String path) throws IOException;
+    <T> PaginatedInterface.Builder<T> readPaginatedResource(String path) throws IOException;
 
     @FunctionalInterface
     interface TextRenderer {
