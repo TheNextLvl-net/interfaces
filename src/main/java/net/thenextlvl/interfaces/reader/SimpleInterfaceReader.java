@@ -185,26 +185,26 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     }
 
     @Override
-    public Interface read(final Path path) throws IOException {
+    public Interface.Builder read(final Path path) throws IOException {
         try (final var reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
             return read(reader);
         }
     }
 
     @Override
-    public Interface read(final Reader reader) {
+    public Interface.Builder read(final Reader reader) {
         return read(JsonParser.parseReader(reader).getAsJsonObject());
     }
 
     @Override
-    public Interface read(final InputStream input) throws IOException {
+    public Interface.Builder read(final InputStream input) throws IOException {
         try (final var reader = new InputStreamReader(input, StandardCharsets.UTF_8)) {
             return read(reader);
         }
     }
 
     @Override
-    public Interface read(final JsonObject object) throws IllegalStateException {
+    public Interface.Builder read(final JsonObject object) throws IllegalStateException {
         final var pattern = get(object, "pattern", JsonArray.class).map(list ->
                 list.asList().stream().map(JsonElement::getAsString).toArray(String[]::new)
         ).orElseThrow(() -> new IllegalStateException("Missing or invalid pattern"));
@@ -247,11 +247,11 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
                 .map(actions -> (BiConsumer<InterfaceSession, Reason>) (session, reason) -> actions.accept(session))
                 .ifPresent(builder::onClose);
 
-        return builder.layout(layout.build()).build();
+        return builder.layout(layout.build());
     }
 
     @Override
-    public Interface readResource(final String path) throws IOException {
+    public Interface.Builder readResource(final String path) throws IOException {
         try (final var resource = getClass().getClassLoader().getResourceAsStream(path)) {
             return read(Objects.requireNonNull(resource, "Missing resource: " + path));
         }

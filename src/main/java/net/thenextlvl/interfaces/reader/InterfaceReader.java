@@ -41,22 +41,23 @@ public interface InterfaceReader extends ParserContext {
     InterfaceReader textRenderer(TextRenderer renderer);
 
     @Contract(value = "_ -> new", pure = true)
-    Interface read(Path path) throws IOException, JsonIOException, JsonSyntaxException;
+    Interface.Builder read(Path path) throws IOException, JsonIOException, JsonSyntaxException;
 
     @Contract(value = "_ -> new", pure = true)
-    Interface read(Reader reader) throws JsonIOException, JsonSyntaxException;
+    Interface.Builder read(Reader reader) throws JsonIOException, JsonSyntaxException;
 
     @Contract(value = "_ -> new", pure = true)
-    Interface read(InputStream input) throws JsonIOException, JsonSyntaxException, IOException;
+    Interface.Builder read(InputStream input) throws JsonIOException, JsonSyntaxException, IOException;
 
     @Contract(value = "_ -> new", pure = true)
-    Interface read(JsonObject object) throws IllegalStateException;
+    Interface.Builder read(JsonObject object) throws IllegalStateException;
 
     /**
      * @since 0.3.0
      */
     @Contract(value = "_ -> new", pure = true)
-    Interface readResource(String path) throws IOException;
+    Interface.Builder readResource(String path) throws IOException;
+
 
     @FunctionalInterface
     interface TextRenderer {
