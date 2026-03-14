@@ -1,0 +1,308 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Interface Definition",
+  "description": "Schema for interface definitions read by SimpleInterfaceReader",
+  "type": "object",
+  "required": [
+    "pattern"
+  ],
+  "properties": {
+    "title": {
+      "$ref": "#/$defs/text",
+      "description": "The title of the interface, rendered as a MiniMessage component"
+    },
+    "content_mask": {
+      "type": "string",
+      "description": "The content mask for paginated interfaces"
+    },
+    "pattern": {
+      "type": "array",
+      "description": "Layout pattern defining the inventory grid. Each string represents a row; each character maps to an item definition. Spaces represent empty slots.",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "maxItems": 6
+    },
+    "on_open": {
+      "type": "array",
+      "description": "Actions executed when the interface is opened",
+      "items": {
+        "$ref": "#/$defs/action_entry"
+      }
+    },
+    "on_close": {
+      "type": "array",
+      "description": "Actions executed when the interface is closed",
+      "items": {
+        "$ref": "#/$defs/action_entry"
+      }
+    }
+  },
+  "patternProperties": {
+    "^.$": {
+      "$ref": "#/$defs/item_definition",
+      "description": "Item definition mapped to a single character used in the pattern"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "text": {
+      "description": "A MiniMessage text string, or an object with a 'content' field and additional tag resolver entries",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "required": [
+            "content"
+          ],
+          "properties": {
+            "content": {
+              "type": "string",
+              "description": "The MiniMessage text content"
+            }
+          },
+          "additionalProperties": {
+            "type": "string",
+            "description": "Tag resolver value for a placeholder used in the content"
+          }
+        }
+      ]
+    },
+    "item_definition": {
+      "type": "object",
+      "description": "Defines an item to display in a slot",
+      "required": [
+        "item"
+      ],
+      "properties": {
+        "item": {
+          "type": "string",
+          "description": "The item identifier, e.g. 'minecraft:diamond' (parsed by Bukkit's ItemFactory)"
+        },
+        "amount": {
+          "type": "string",
+          "description": "An arithmetic expression for the item amount. Supports variables like 'row', 'column', 'index' and operators"
+        },
+        "name": {
+          "$ref": "#/$defs/text",
+          "description": "The display name of the item, rendered as a MiniMessage component"
+        },
+        "lore": {
+          "type": "array",
+          "description": "The lore lines of the item, each rendered as a MiniMessage component",
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        },
+        "hide_tooltip": {
+          "type": "boolean",
+          "description": "Whether to hide the item's tooltip"
+        },
+        "profile": {
+          "type": "string",
+          "description": "A player name or Base64-encoded texture value for player head items"
+        },
+        "click_actions": {
+          "type": "array",
+          "description": "Actions executed when the item is clicked. Each entry can combine conditions and actions",
+          "items": {
+            "$ref": "#/$defs/click_action_entry"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "click_action_entry": {
+      "type": "object",
+      "description": "A click action entry combining optional conditions with actions. All conditions must be met for the actions to execute",
+      "properties": {
+        "click_type": {
+          "type": "string",
+          "description": "Required click type condition. Prefix with '!' to negate",
+          "enum": [
+            "any",
+            "any_left",
+            "any_right",
+            "left",
+            "right",
+            "any_shift",
+            "shift_left",
+            "shift_right",
+            "keyboard",
+            "mouse",
+            "double_click",
+            "any_drop",
+            "drop",
+            "drop_all",
+            "creative",
+            "swap_offhand",
+            "unknown",
+            "border_left",
+            "border_right",
+            "middle",
+            "!any_left",
+            "!any_right",
+            "!left",
+            "!right",
+            "!any_shift",
+            "!shift_left",
+            "!shift_right",
+            "!keyboard",
+            "!mouse",
+            "!double_click",
+            "!any_drop",
+            "!drop",
+            "!drop_all",
+            "!creative",
+            "!swap_offhand",
+            "!unknown",
+            "!border_left",
+            "!border_right",
+            "!middle"
+          ]
+        },
+        "permission": {
+          "type": "string",
+          "description": "Permission node the player must have for the actions to execute"
+        },
+        "no_permission": {
+          "type": "string",
+          "description": "Permission node the player must NOT have for the actions to execute"
+        },
+        "send_message": {
+          "$ref": "#/$defs/text",
+          "description": "Send a private MiniMessage message to the player. Supports the <player> placeholder"
+        },
+        "broadcast": {
+          "$ref": "#/$defs/text",
+          "description": "Broadcast a MiniMessage message to all online players. Supports the <player> placeholder"
+        },
+        "run_command": {
+          "type": "string",
+          "description": "Command to execute as the player. Supports the <player> placeholder"
+        },
+        "run_console_command": {
+          "type": "string",
+          "description": "Command to execute as the console. Supports the <player> placeholder"
+        },
+        "play_sound": {
+          "$ref": "#/$defs/sound",
+          "description": "Play a sound to the player"
+        },
+        "transfer": {
+          "type": "string",
+          "description": "Transfer the player to another server in host:port format"
+        },
+        "connect": {
+          "type": "string",
+          "description": "Connect the player to a BungeeCord/Velocity proxy server by name"
+        },
+        "close_interface": {
+          "type": "object",
+          "description": "Close the player's current inventory. Takes no arguments",
+          "properties": {},
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "action_entry": {
+      "type": "object",
+      "description": "An action entry for on_open/on_close events. Combines optional conditions with actions",
+      "properties": {
+        "permission": {
+          "type": "string",
+          "description": "Permission node the player must have for the actions to execute"
+        },
+        "no_permission": {
+          "type": "string",
+          "description": "Permission node the player must NOT have for the actions to execute"
+        },
+        "send_message": {
+          "$ref": "#/$defs/text",
+          "description": "Send a private MiniMessage message to the player. Supports the <player> placeholder"
+        },
+        "broadcast": {
+          "$ref": "#/$defs/text",
+          "description": "Broadcast a MiniMessage message to all online players. Supports the <player> placeholder"
+        },
+        "run_command": {
+          "type": "string",
+          "description": "Command to execute as the player. Supports the <player> placeholder"
+        },
+        "run_console_command": {
+          "type": "string",
+          "description": "Command to execute as the console. Supports the <player> placeholder"
+        },
+        "play_sound": {
+          "$ref": "#/$defs/sound",
+          "description": "Play a sound to the player"
+        },
+        "transfer": {
+          "type": "string",
+          "description": "Transfer the player to another server in host:port format"
+        },
+        "connect": {
+          "type": "string",
+          "description": "Connect the player to a BungeeCord/Velocity proxy server by name"
+        },
+        "close_interface": {
+          "type": "object",
+          "description": "Close the player's current inventory. Takes no arguments",
+          "properties": {},
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "sound": {
+      "type": "object",
+      "description": "Sound definition to play for a player",
+      "required": [
+        "sound"
+      ],
+      "properties": {
+        "sound": {
+          "type": "string",
+          "description": "The sound identifier, e.g. 'minecraft:ui.button.click'"
+        },
+        "category": {
+          "type": "string",
+          "description": "The sound category",
+          "enum": [
+            "master",
+            "music",
+            "records",
+            "weather",
+            "blocks",
+            "hostile",
+            "neutral",
+            "players",
+            "ambient",
+            "voice"
+          ],
+          "default": "master"
+        },
+        "volume": {
+          "type": "number",
+          "description": "The volume of the sound",
+          "default": 1
+        },
+        "pitch": {
+          "type": "number",
+          "description": "The pitch of the sound",
+          "default": 1
+        },
+        "seed": {
+          "type": "integer",
+          "description": "The seed for the sound",
+          "default": 0
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
