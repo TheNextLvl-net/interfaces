@@ -9,6 +9,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.Tag;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.thenextlvl.interfaces.Interface;
+import net.thenextlvl.interfaces.PaginatedInterface;
 import org.jetbrains.annotations.Contract;
 
 import java.io.IOException;
@@ -58,6 +59,20 @@ public interface InterfaceReader extends ParserContext {
     @Contract(value = "_ -> new", pure = true)
     Interface.Builder readResource(String path) throws IOException;
 
+    @Contract(value = "_ -> new", pure = true)
+    PaginatedInterface.Builder<?> readPaginated(Path path) throws IOException, JsonIOException, JsonSyntaxException;
+
+    @Contract(value = "_ -> new", pure = true)
+    PaginatedInterface.Builder<?> readPaginated(Reader reader) throws JsonIOException, JsonSyntaxException;
+
+    @Contract(value = "_ -> new", pure = true)
+    PaginatedInterface.Builder<?> readPaginated(InputStream input) throws JsonIOException, JsonSyntaxException, IOException;
+
+    @Contract(value = "_ -> new", pure = true)
+    PaginatedInterface.Builder<?> readPaginated(JsonObject object) throws IllegalStateException;
+
+    @Contract(value = "_ -> new", pure = true)
+    PaginatedInterface.Builder<?> readPaginatedResource(String path) throws IOException;
 
     @FunctionalInterface
     interface TextRenderer {

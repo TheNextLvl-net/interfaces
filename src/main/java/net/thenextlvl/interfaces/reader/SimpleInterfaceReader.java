@@ -16,6 +16,7 @@ import net.thenextlvl.interfaces.ClickAction;
 import net.thenextlvl.interfaces.Interface;
 import net.thenextlvl.interfaces.InterfaceSession;
 import net.thenextlvl.interfaces.Layout;
+import net.thenextlvl.interfaces.PaginatedInterface;
 import net.thenextlvl.interfaces.RenderContext;
 import net.thenextlvl.interfaces.Renderer;
 import net.thenextlvl.interfaces.reader.action.BroadcastActionParser;
@@ -254,6 +255,59 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     public Interface.Builder readResource(final String path) throws IOException {
         try (final var resource = getClass().getClassLoader().getResourceAsStream(path)) {
             return read(Objects.requireNonNull(resource, "Missing resource: " + path));
+        }
+    }
+
+    @Override
+    public PaginatedInterface.Builder<?> readPaginated(final Path path) throws IOException {
+        try (final var reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+            return readPaginated(reader);
+        }
+    }
+
+    @Override
+    public PaginatedInterface.Builder<?> readPaginated(final Reader reader) {
+        return readPaginated(JsonParser.parseReader(reader).getAsJsonObject());
+    }
+
+    @Override
+    public PaginatedInterface.Builder<?> readPaginated(final InputStream input) throws IOException {
+        try (final var reader = new InputStreamReader(input, StandardCharsets.UTF_8)) {
+            return readPaginated(reader);
+        }
+    }
+
+    @Override
+    public PaginatedInterface.Builder<?> readPaginated(final JsonObject object) throws IllegalStateException {
+        final var contentMask = get(object, "content_mask", JsonPrimitive.class)
+                .map(JsonPrimitive::getAsString)
+                .filter(s -> s.length() == 1)
+                .map(s -> s.charAt(0))
+                .orElseThrow(() -> new IllegalStateException("Missing or invalid 'content_mask' (expected a single character)"));
+
+        final var builder = PaginatedInterface.builder(read(object))
+                .mask(contentMask);
+
+        get(object, String.valueOf(contentMask), JsonObject.class).ifPresent(fallbackObject -> {
+            try {
+                final var renderer = readItemRenderer(fallbackObject);
+                final var action = get(fallbackObject, "click_actions", JsonArray.class)
+                        .flatMap(this::readClickActions)
+                        .orElse(context -> {
+                        });
+                builder.fallback(new ActionItem(renderer, action));
+            } catch (final ParserException e) {
+                logger.warn("Failed to parse fallback item for content mask '{}': {}", contentMask, e.getMessage());
+            }
+        });
+
+        return builder;
+    }
+
+    @Override
+    public PaginatedInterface.Builder<?> readPaginatedResource(final String path) throws IOException {
+        try (final var resource = getClass().getClassLoader().getResourceAsStream(path)) {
+            return readPaginated(Objects.requireNonNull(resource, "Missing resource: " + path));
         }
     }
 
