@@ -4,6 +4,7 @@ import com.google.gson.JsonPrimitive;
 import net.thenextlvl.interfaces.ClickContext;
 import net.thenextlvl.interfaces.InterfaceSession;
 import net.thenextlvl.interfaces.reader.ConditionParser;
+import net.thenextlvl.interfaces.reader.ParserConditions;
 import net.thenextlvl.interfaces.reader.ParserContext;
 import net.thenextlvl.interfaces.reader.ParserException;
 import org.bukkit.event.inventory.ClickType;
@@ -51,6 +52,8 @@ public final class ClickTypeConditionParser implements ConditionParser<JsonPrimi
         final var invert = value.startsWith("!");
 
         final var key = invert ? value.substring(1) : value;
+        ParserConditions.checkState(!invert || !key.equals("any"), "Cannot invert 'any' click type");
+
         final var type = Optional.ofNullable(clickTypes.get(key))
                 .map(clickTypePredicate -> invert ? clickTypePredicate.negate() : clickTypePredicate)
                 .orElseThrow(() -> new ParserException("Unknown click type: %s", key));
