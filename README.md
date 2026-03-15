@@ -5,7 +5,7 @@ Define inventory layouts using character-based patterns _similar to shaped craft
 and bind items, renderers, and click actions to each character.
 
 > [!Note]
-> **Early Stage Project:** The API may change as things evolve.
+> **Early Stage Project:** The API may change as things evolve.  
 > Feedback, bug reports, and contributions are very welcome!
 
 ## Features
