@@ -47,12 +47,7 @@ public interface ClickAction {
      */
     @Contract(value = "_ -> new", pure = true)
     static ClickAction of(final BiConsumer<Player, ClickType> action) {
-        return context -> action.accept(context.player(), context.clickType());
-    }
-
-    @Contract(value = "_ -> new", pure = true)
-    static ClickAction of(final TriConsumer<Player, ClickType, Integer> action) {
-        return context -> action.accept(context.player(), context.clickType(), context.slot());
+        return context -> action.accept(context.session().player(), context.clickType());
     }
 
     /**
@@ -77,10 +72,5 @@ public interface ClickAction {
     @Contract(value = "_ -> new", pure = true)
     static ClickAction of(final Runnable action) {
         return context -> action.run();
-    }
-
-    @FunctionalInterface
-    interface TriConsumer<T, U, V> {
-        void accept(T t, U u, V v);
     }
 }
