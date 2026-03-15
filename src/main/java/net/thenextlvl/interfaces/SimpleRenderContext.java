@@ -1,31 +1,36 @@
 package net.thenextlvl.interfaces;
 
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.InventoryView;
+import java.util.Optional;
 
-import java.util.Map;
-
-non-sealed class SimpleRenderContext extends SimpleInterface.Session implements RenderContext {
+non-sealed class SimpleRenderContext implements RenderContext {
+    private final InterfaceSession session;
     private final int index;
     private final int row;
     private final int column;
     private final int slot;
 
     public SimpleRenderContext(
-            final Player player,
-            final InventoryView view,
-            final SimpleInterface interface_,
-            final Map<String, Object> state,
+            final InterfaceSession session,
             final int index,
             final int row,
             final int column,
             final int slot
     ) {
-        super(player, view, interface_, state);
+        this.session = session;
         this.index = index;
         this.row = row;
         this.column = column;
         this.slot = slot;
+    }
+
+    @Override
+    public InterfaceSession session() {
+        return session;
+    }
+
+    @Override
+    public Optional<PaginatedSession> paginatedSession() {
+        return session instanceof final PaginatedSession paginated ? Optional.of(paginated) : Optional.empty();
     }
 
     @Override

@@ -152,10 +152,7 @@ non-sealed class SimpleInterface implements Interface {
         final var item = items[slot];
         if (item == null || item.action() == null) return;
         final var context = new SimpleClickContext(
-                session.player(),
-                event.getView(),
-                this,
-                session.state,
+                session,
                 item.index(),
                 item.row(),
                 item.column(),
@@ -176,7 +173,7 @@ non-sealed class SimpleInterface implements Interface {
     ) {
     }
 
-    public static sealed class Session implements InterfaceSession permits SimplePaginatedInterface.Session, SimpleRenderContext {
+    public static sealed class Session implements InterfaceSession permits SimplePaginatedInterface.Session {
         protected final Map<String, Object> state;
         private final SimpleInterface interface_;
         private final InventoryView view;
@@ -270,7 +267,7 @@ non-sealed class SimpleInterface implements Interface {
                 return;
             }
 
-            final var context = new SimpleRenderContext(player, view, interface_, state, item.index(), item.row(), item.column(), slot);
+            final var context = new SimpleRenderContext(this, item.index(), item.row(), item.column(), slot);
             view.setItem(slot, item.renderer().render(context));
         }
 
@@ -281,10 +278,7 @@ non-sealed class SimpleInterface implements Interface {
             final var item = interface_.items[slot];
             if (item == null || item.action() == null) return;
             final var context = new SimpleClickContext(
-                    player,
-                    event.getView(),
-                    interface_,
-                    state,
+                    this,
                     item.index(),
                     item.row(),
                     item.column(),
@@ -308,12 +302,12 @@ non-sealed class SimpleInterface implements Interface {
         @Override
         public Interface.Builder type(final InventoryType type) throws IllegalArgumentException {
             Preconditions.checkArgument(type.getMenuType() != null, "Inventory type %s is not creatable", type);
-            this.type = type.getMenuType();
-            return this;
+            return type(type.getMenuType());
         }
 
         @Override
-        public Interface.Builder type(final MenuType type) throws IllegalArgumentException {
+        public Interface.Builder type(final MenuType type) {
+            Preconditions.checkArgument(dimensions.containsKey(type), "Unsupported menu type: %s", type);
             this.type = type;
             return this;
         }
@@ -339,21 +333,21 @@ non-sealed class SimpleInterface implements Interface {
         }
 
         @Override
-        public Interface.Builder slot(final char c, final ActionItem actionItem) {
-            this.slots.put(c, actionItem);
+        public Interface.Builder slot(final char slot, final ActionItem actionItem) {
+            this.slots.put(slot, actionItem);
             return this;
         }
 
         @Override
-        public Interface.Builder slot(final char c, final ItemStack item, final ClickAction action) {
+        public Interface.Builder slot(final char slot, final ItemStack item, final ClickAction action) {
             final var clone = item.clone();
-            this.slots.put(c, new ActionItem(context -> clone, action));
+            this.slots.put(slot, new ActionItem(context -> clone, action));
             return this;
         }
 
         @Override
-        public Interface.Builder slot(final char c, final Renderer renderer, final ClickAction action) {
-            this.slots.put(c, new ActionItem(renderer, action));
+        public Interface.Builder slot(final char slot, final Renderer renderer, final ClickAction action) {
+            this.slots.put(slot, new ActionItem(renderer, action));
             return this;
         }
 

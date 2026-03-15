@@ -55,7 +55,7 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
     }
 
     @Override
-    public ActionItem transformItem(T entry) {
+    public ActionItem transformItem(final T entry) {
         return itemFunction.apply(entry);
     }
 
@@ -65,7 +65,7 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
     }
 
     @Override
-    protected SimpleInterface.Session createSession(Player player, InventoryView view, Map<String, Object> state) {
+    protected SimpleInterface.Session createSession(final Player player, final InventoryView view, final Map<String, Object> state) {
         return new Session<>(player, view, this, state);
     }
 
@@ -132,10 +132,12 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
         }
 
         @Override
-        public void page(final int page) throws IndexOutOfBoundsException {
+        public boolean page(final int page) throws IndexOutOfBoundsException {
             Preconditions.checkElementIndex(page, pageCount(), "Page");
+            if (page == this.page) return false;
             this.page = page;
             refresh();
+            return true;
         }
 
         @Override
@@ -186,7 +188,7 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
                 final var contentIndex = offset + i;
                 final T element = contentIndex < content.size() ? content.get(contentIndex) : null;
                 final var actionItem = element != null ? paginatedInterface.transformItem(element) : paginatedInterface.fallback;
-                final var context = new SimpleRenderContext(player(), view(), paginatedInterface, state, i, 0, 0, viewSlot);
+                final var context = new SimpleRenderContext(this, i, 0, 0, viewSlot);
                 view().setItem(viewSlot, actionItem.renderer().render(context));
             }
         }
@@ -197,7 +199,7 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
                 view().setItem(slot, null);
                 return;
             }
-            final var context = new SimpleRenderContext(player(), view(), paginatedInterface, state, item.index(), item.row(), item.column(), slot);
+            final var context = new SimpleRenderContext(this, item.index(), item.row(), item.column(), slot);
             view().setItem(slot, item.renderer().render(context));
         }
 
@@ -211,7 +213,7 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
                 final var contentIndex = page * pageSize() + i;
                 final T element = contentIndex < content.size() ? content.get(contentIndex) : null;
                 final var actionItem = element != null ? paginatedInterface.transformItem(element) : paginatedInterface.fallback();
-                final var context = new SimpleClickContext(player(), view(), paginatedInterface, state, i, 0, 0, slot, event.getClick());
+                final var context = new SimpleClickContext(this, i, 0, 0, slot, event.getClick());
                 actionItem.action().click(context);
                 return;
             }
@@ -219,7 +221,14 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
             if (slot < 0 || slot >= paginatedInterface.items.length) return;
             final var item = paginatedInterface.items[slot];
             if (item == null || item.action() == null) return;
-            final var context = new SimpleClickContext(player(), view(), paginatedInterface, state, item.index(), item.row(), item.column(), slot, event.getClick());
+            final var context = new SimpleClickContext(
+                    this,
+                    item.index(),
+                    item.row(),
+                    item.column(),
+                    slot,
+                    event.getClick()
+            );
             item.action().click(context);
         }
     }
@@ -237,30 +246,30 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
         }
 
         @Override
-        public PaginatedInterface.Builder<T> mask(char key) {
+        public PaginatedInterface.Builder<T> mask(final char key) {
             this.contentKey = key;
             return this;
         }
 
         @Override
-        public PaginatedInterface.Builder<T> content(Supplier<? extends Collection<T>> supplier) {
+        public PaginatedInterface.Builder<T> content(final Supplier<? extends Collection<T>> supplier) {
             this.contentSupplier = supplier;
             return this;
         }
 
         @Override
-        public PaginatedInterface.Builder<T> content(Collection<T> collection) {
+        public PaginatedInterface.Builder<T> content(final Collection<T> collection) {
             return content(() -> collection);
         }
 
         @Override
-        public PaginatedInterface.Builder<T> transformer(Function<T, ActionItem> function) {
+        public PaginatedInterface.Builder<T> transformer(final Function<T, ActionItem> function) {
             this.itemFunction = function;
             return this;
         }
 
         @Override
-        public PaginatedInterface.Builder<T> fallback(ActionItem fallback) {
+        public PaginatedInterface.Builder<T> fallback(final ActionItem fallback) {
             this.fallback = fallback;
             return this;
         }
