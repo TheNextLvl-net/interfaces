@@ -22,7 +22,7 @@ public final class TransferActionParser implements ActionParser<JsonPrimitive> {
             final var port = parts.length == 2 ? Integer.parseInt(parts[1]) : 25565;
             return session -> session.player().transfer(host, port);
         } catch (final NumberFormatException e) {
-            throw new ParserException("Invalid port: " + primitive.getAsString(), e);
+            throw new ParserException("Invalid port: %s", e, primitive.getAsString());
         }
     }
 }
