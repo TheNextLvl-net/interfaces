@@ -3,7 +3,6 @@ package net.thenextlvl.interfaces;
 import com.google.common.base.Preconditions;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.jspecify.annotations.Nullable;
@@ -115,88 +114,34 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
 
         @Override
         public void refresh() {
-            this.content = List.copyOf(getInterface().contentSupplier.get());
-            if (page >= pageCount()) page = Math.max(0, pageCount() - 1);
-
-            for (var i = 0; i < getInterface().items.length; i++) {
-                final var item = getInterface().items[i];
-                if (item != null && item.key() == getInterface().contentKey) continue;
-                refreshTemplateSlot(i);
-            }
-            refreshContentSlots();
+            updateContentItems();
+            super.refresh();
         }
 
         @Override
         public void refresh(final char key) {
-            if (key != getInterface().contentKey) super.refresh(key);
+            if (key == getInterface().contentKey) updateContentItems();
+            super.refresh(key);
+        }
+
+        private void updateContentItems() {
             this.content = List.copyOf(getInterface().contentSupplier.get());
-            if (page >= pageCount()) page = Math.max(0, pageCount() - 1);
-            refreshContentSlots();
-        }
+            final var pages = pageCount();
+            if (page >= pages) page = Math.max(0, pages - 1);
 
-        @Override
-        public void refreshSlot(final int slot) {
-            Preconditions.checkElementIndex(slot, getInterface().items.length, "Slot");
-
-            for (final var contentSlot : getInterface().contentSlots) {
-                if (contentSlot == slot) {
-                    refreshContentSlots();
-                    return;
-                }
-            }
-            refreshTemplateSlot(slot);
-        }
-
-        private void refreshContentSlots() {
             final var offset = page * pageSize();
-            for (var i = 0; i < getInterface().contentSlots.length; i++) {
-                final var viewSlot = getInterface().contentSlots[i];
+            final var paginated = getInterface();
+            for (var i = 0; i < paginated.contentSlots.length; i++) {
+                final var viewSlot = paginated.contentSlots[i];
                 final var contentIndex = offset + i;
                 final T element = contentIndex < content.size() ? content.get(contentIndex) : null;
-                final var actionItem = element != null ? getInterface().transformItem(element) : getInterface().fallback();
-                final var context = new SimpleRenderContext(this, i, 0, 0, viewSlot);
-                view().setItem(viewSlot, actionItem.renderer().render(context));
+                final var actionItem = element != null ? paginated.transformItem(element) : paginated.fallback();
+                final var oldItem = paginated.items[viewSlot];
+                paginated.items[viewSlot] = new SimpleInterface.Item(
+                        paginated.contentKey, actionItem.renderer(), actionItem.action(),
+                        i, oldItem.row(), oldItem.column(), viewSlot
+                );
             }
-        }
-
-        private void refreshTemplateSlot(final int slot) {
-            final var item = getInterface().items[slot];
-            if (item == null) {
-                view().setItem(slot, null);
-                return;
-            }
-            final var context = new SimpleRenderContext(this, item.index(), item.row(), item.column(), slot);
-            view().setItem(slot, item.renderer().render(context));
-        }
-
-        @Override
-        public void handleClick(final InventoryClickEvent event) {
-            if (!event.getView().getTopInventory().equals(event.getClickedInventory())) return;
-            final var slot = event.getSlot();
-
-            // todo: no custom logic, add the click actions to the item, remove entire method when done
-            for (var i = 0; i < getInterface().contentSlots.length; i++) {
-                if (getInterface().contentSlots[i] != slot) continue;
-                final var contentIndex = page * pageSize() + i;
-                final T element = contentIndex < content.size() ? content.get(contentIndex) : null;
-                final var actionItem = element != null ? getInterface().transformItem(element) : getInterface().fallback();
-                final var context = new SimpleClickContext(this, i, 0, 0, slot, event.getClick());
-                actionItem.action().click(context);
-                return;
-            }
-
-            if (slot < 0 || slot >= getInterface().items.length) return;
-            final var item = getInterface().items[slot];
-            if (item == null || item.action() == null) return;
-            final var context = new SimpleClickContext(
-                    this,
-                    item.index(),
-                    item.row(),
-                    item.column(),
-                    slot,
-                    event.getClick()
-            );
-            item.action().click(context);
         }
     }
 

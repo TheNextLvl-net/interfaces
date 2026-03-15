@@ -29,7 +29,7 @@ non-sealed class SimpleInterface implements Interface {
     private final @Nullable Consumer<InterfaceSession> onOpen;
 
     protected final @Nullable Function<Player, Component> title;
-    protected final @Nullable Item[] items;
+    protected final Item[] items;
 
     private final Layout layout;
     private final Map<Character, ActionItem> slots;
@@ -71,12 +71,8 @@ non-sealed class SimpleInterface implements Interface {
                     ? actionItem.renderer()
                     : layout.renderer(c);
 
-            if (item != null) {
-                final var action = actionItem != null ? actionItem.action() : null;
-                this.items[slot] = new Item(c, item, action, indices.get(c), row, column, slot);
-            } else {
-                this.items[slot] = null;
-            }
+            final var action = actionItem != null ? actionItem.action() : null;
+            this.items[slot] = new Item(c, item, action, indices.get(c), row, column, slot);
 
             column++;
             slot++;
@@ -151,7 +147,7 @@ non-sealed class SimpleInterface implements Interface {
         final var slot = event.getSlot();
         if (slot < 0 || slot >= items.length) return;
         final var item = items[slot];
-        if (item == null || item.action() == null) return;
+        if (item.action() == null) return;
         final var context = new SimpleClickContext(
                 session,
                 item.index(),
@@ -165,7 +161,7 @@ non-sealed class SimpleInterface implements Interface {
 
     public record Item(
             char key,
-            Renderer renderer,
+            @Nullable Renderer renderer,
             @Nullable ClickAction action,
             int index,
             int row,
@@ -264,7 +260,7 @@ non-sealed class SimpleInterface implements Interface {
         public void refresh(final char key) {
             for (var slot = 0; slot < interface_.items.length; slot++) {
                 final var item = interface_.items[slot];
-                if (item == null || item.key() != key) continue;
+                if (item.key() != key) continue;
                 refreshSlot(slot, item);
             }
         }
@@ -276,7 +272,9 @@ non-sealed class SimpleInterface implements Interface {
         }
 
         public void refreshSlot(final int slot, final @Nullable Item item) throws IndexOutOfBoundsException {
-            final var context = item != null ? new SimpleRenderContext(this, item.index(), item.row(), item.column(), slot) : null;
+            final var context = item != null && item.renderer != null
+                    ? new SimpleRenderContext(this, item.index(), item.row(), item.column(), slot)
+                    : null;
             view.setItem(slot, context != null ? item.renderer().render(context) : null);
         }
 
@@ -285,7 +283,7 @@ non-sealed class SimpleInterface implements Interface {
             final var slot = event.getSlot();
             if (slot < 0 || slot >= interface_.items.length) return;
             final var item = interface_.items[slot];
-            if (item == null || item.action() == null) return;
+            if (item.action() == null) return;
             final var context = new SimpleClickContext(
                     this,
                     item.index(),
