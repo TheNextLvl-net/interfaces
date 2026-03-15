@@ -93,7 +93,7 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
         }
 
         @Override
-        public int page() {
+        public int currentPage() {
             return page;
         }
 
@@ -108,33 +108,8 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
         }
 
         @Override
-        public boolean hasNextPage() {
-            return page < pageCount() - 1;
-        }
-
-        @Override
-        public boolean hasPreviousPage() {
-            return page > 0;
-        }
-
-        @Override
-        public boolean nextPage() {
-            if (!hasNextPage()) return false;
-            page(page + 1);
-            return true;
-        }
-
-        @Override
-        public boolean previousPage() {
-            if (!hasPreviousPage()) return false;
-            page(page - 1);
-            return true;
-        }
-
-        @Override
-        public boolean page(final int page) throws IndexOutOfBoundsException {
-            Preconditions.checkElementIndex(page, pageCount(), "Page");
-            if (page == this.page) return false;
+        public boolean page(final int page) {
+            if (page == this.page || page < 0 || page >= pageCount()) return false;
             this.page = page;
             refresh();
             return true;
