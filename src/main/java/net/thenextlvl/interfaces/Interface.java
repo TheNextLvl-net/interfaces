@@ -21,25 +21,64 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+/**
+ * Represents an interface that can be opened by players.
+ *
+ * @since 0.1.0
+ */
 public sealed interface Interface permits SimpleInterface, PaginatedInterface {
     /**
+     * Returns the type of menu used for this interface.
+     *
+     * @return the type of menu
      * @since 0.3.0
      */
     @Contract(pure = true)
     MenuType menuType();
 
+    /**
+     * Returns the layout of the interface.
+     *
+     * @return the layout of the interface
+     * @since 0.1.0
+     */
     @Contract(pure = true)
     Layout layout();
 
+    /**
+     * Returns the title of the interface for the player.
+     *
+     * @param player the player to get the title for
+     * @return the title of the interface for the player
+     * @since 0.1.0
+     */
     @Contract(pure = true)
     @Nullable Component title(Player player);
 
+    /**
+     * Returns the action that is performed when the interface is opened.
+     *
+     * @return the action that is performed when the interface is opened
+     * @since 0.2.0
+     */
     @Contract(pure = true)
     @Nullable Consumer<InterfaceSession> onOpen();
 
+    /**
+     * Returns the action that is performed when the interface is closed.
+     *
+     * @return the action that is performed when the interface is closed
+     * @since 0.2.0
+     */
     @Contract(pure = true)
     @Nullable BiConsumer<InterfaceSession, InventoryCloseEvent.Reason> onClose();
 
+    /**
+     * Returns the items that are displayed in the interface.
+     *
+     * @return the items that are displayed in the interface
+     * @since 0.1.0
+     */
     @Unmodifiable
     @Contract(pure = true)
     Map<Character, ActionItem> slots();
@@ -57,58 +96,174 @@ public sealed interface Interface permits SimpleInterface, PaginatedInterface {
      * Opens the interface for the player.
      *
      * @param player the player to open the interface for
+     * @since 0.1.0
      */
     void open(Player player);
 
+    /**
+     * Creates a builder representing this interface.
+     *
+     * @since 0.1.0
+     */
     @Contract(value = " -> new", pure = true)
     Builder toBuilder();
 
+    /**
+     * Creates a builder for an interface.
+     *
+     * @return a builder for an interface
+     * @since 0.1.0
+     */
     @Contract(value = " -> new", pure = true)
     static Builder builder() {
         return new SimpleInterface.Builder();
     }
 
+    /**
+     * A builder for fluently creating interfaces.
+     *
+     * @since 0.1.0
+     */
     sealed interface Builder permits SimpleInterface.Builder {
-        // throws if invalid rows
+        /**
+         * Sets the number of rows for the interface.
+         *
+         * @param rows the number of rows
+         * @return this builder
+         * @throws IllegalArgumentException if the number of rows is invalid
+         * @see #type(MenuType)
+         * @since 0.1.0
+         */
         @Contract(value = "_ -> this", pure = true)
         Builder rows(@Range(from = 1, to = 6) int rows) throws IllegalArgumentException;
 
-        // throws if invalid slots
+        /**
+         * Sets the number of slots for the interface.
+         *
+         * @param slots the number of slots
+         * @return this builder
+         * @throws IllegalArgumentException if the number of slots is invalid
+         * @see #type(MenuType)
+         * @since 0.1.0
+         */
         @Contract(value = "_ -> this", pure = true)
         Builder slots(@MagicConstant(intValues = {5, 9, 18, 27, 36, 45, 54}) int slots) throws IllegalArgumentException;
 
-        // throws if invalid type
+        /**
+         * Sets the type of menu for the interface.
+         *
+         * @param type the type of menu
+         * @return this builder
+         * @throws IllegalArgumentException if the inventory type is not creatable
+         * @see #type(MenuType)
+         * @since 0.1.0
+         */
         @Contract(value = "_ -> this", pure = true)
         Builder type(InventoryType type) throws IllegalArgumentException;
 
-        // throws if invalid type
+        /**
+         * Sets the type of menu for the interface.
+         *
+         * @param type the type of menu
+         * @return this builder
+         * @since 0.1.0
+         */
         @Contract(value = "_ -> this", pure = true)
-        Builder type(MenuType type) throws IllegalArgumentException;
+        Builder type(MenuType type);
 
+        /**
+         * Sets the title of the interface.
+         *
+         * @param title the title of the interface
+         * @return this builder
+         * @see #title(Function)
+         * @since 0.1.0
+         */
         @Contract(value = "_ -> this", pure = true)
         Builder title(@Nullable Component title);
 
+        /**
+         * Sets the title of the interface for the player.
+         *
+         * @param title the title of the interface for the player
+         * @return this builder
+         * @since 0.1.0
+         */
         @Contract(value = "_ -> this", pure = true)
         Builder title(@Nullable Function<Player, Component> title);
 
+        /**
+         * Sets the layout of the interface.
+         *
+         * @param layout the layout of the interface
+         * @return this builder
+         * @since 0.1.0
+         */
         @Contract(value = "_ -> this", pure = true)
         Builder layout(Layout layout);
 
+        /**
+         * Sets an action item for a specific slot in the interface.
+         *
+         * @param slot       the character representing the slot
+         * @param actionItem the action item for the slot
+         * @return this builder
+         * @since 0.1.0
+         */
         @Contract(value = "_, _ -> this", pure = true)
-        Builder slot(char c, ActionItem actionItem);
+        Builder slot(char slot, ActionItem actionItem);
 
+        /**
+         * Sets an item and action for a specific slot in the interface.
+         *
+         * @param slot   the character representing the slot
+         * @param item   the item for the slot
+         * @param action the action for the slot
+         * @return this builder
+         * @since 0.1.0
+         */
         @Contract(value = "_, _, _ -> this", pure = true)
-        Builder slot(char c, ItemStack item, ClickAction action);
+        Builder slot(char slot, ItemStack item, ClickAction action);
 
+        /**
+         * Sets a renderer and action for a specific slot in the interface.
+         *
+         * @param slot     the character representing the slot
+         * @param renderer the renderer for the slot
+         * @param action   the action for the slot
+         * @return this builder
+         * @since 0.1.0
+         */
         @Contract(value = "_, _, _ -> this", pure = true)
-        Builder slot(char c, Renderer renderer, ClickAction action);
+        Builder slot(char slot, Renderer renderer, ClickAction action);
 
+        /**
+         * Sets an action that is performed when the interface is opened.
+         *
+         * @param handler the action that is performed when the interface is opened
+         * @return this builder
+         * @since 0.2.0
+         */
         @Contract(value = "_ -> this", pure = true)
         Builder onOpen(@Nullable Consumer<InterfaceSession> handler);
 
+        /**
+         * Sets an action that is performed when the interface is closed.
+         *
+         * @param handler the action that is performed when the interface is closed
+         * @return this builder
+         * @since 0.2.0
+         */
         @Contract(value = "_ -> this", pure = true)
         Builder onClose(@Nullable BiConsumer<InterfaceSession, InventoryCloseEvent.Reason> handler);
 
+        /**
+         * Builds the interface.
+         *
+         * @return the interface
+         * @throws IllegalArgumentException if the interface is invalid
+         * @since 0.1.0
+         */
         @Contract(value = " -> new", pure = true)
         Interface build() throws IllegalArgumentException;
     }
