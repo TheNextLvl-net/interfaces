@@ -65,13 +65,11 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
     }
 
     @Override
-    protected SimpleInterface.Session createSession(final Player player, final InventoryView view, final Map<String, Object> state) {
+    protected SimpleInterface.Session createSession(final Player player, final InventoryView view, final Map<String, @Nullable Object> state) {
         return new Session<>(player, view, this, state);
     }
 
     static final class Session<T> extends SimpleInterface.Session implements PaginatedSession {
-        private final SimplePaginatedInterface<T> paginatedInterface;
-
         private List<T> content;
         private int page;
 
@@ -79,17 +77,17 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
                 final Player player,
                 final InventoryView view,
                 final SimplePaginatedInterface<T> paginatedInterface,
-                final Map<String, Object> state
+                final Map<String, @Nullable Object> state
         ) {
             super(player, view, paginatedInterface, state);
-            this.paginatedInterface = paginatedInterface;
             this.page = 0;
             this.content = List.copyOf(paginatedInterface.contentSupplier.get());
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public SimplePaginatedInterface<T> getInterface() {
-            return paginatedInterface;
+            return (SimplePaginatedInterface<T>) super.getInterface();
         }
 
         @Override
@@ -99,7 +97,7 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
 
         @Override
         public int pageSize() {
-            return paginatedInterface.contentSlots.length;
+            return getInterface().contentSlots.length;
         }
 
         @Override
@@ -117,12 +115,12 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
 
         @Override
         public void refresh() {
-            this.content = List.copyOf(paginatedInterface.contentSupplier.get());
+            this.content = List.copyOf(getInterface().contentSupplier.get());
             if (page >= pageCount()) page = Math.max(0, pageCount() - 1);
 
-            for (var i = 0; i < paginatedInterface.items.length; i++) {
-                final var item = paginatedInterface.items[i];
-                if (item != null && item.key() == paginatedInterface.contentKey) continue;
+            for (var i = 0; i < getInterface().items.length; i++) {
+                final var item = getInterface().items[i];
+                if (item != null && item.key() == getInterface().contentKey) continue;
                 refreshTemplateSlot(i);
             }
             refreshContentSlots();
@@ -130,24 +128,17 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
 
         @Override
         public void refresh(final char key) {
-            if (key == paginatedInterface.contentKey) {
-                this.content = List.copyOf(paginatedInterface.contentSupplier.get());
-                if (page >= pageCount()) page = Math.max(0, pageCount() - 1);
-                refreshContentSlots();
-                return;
-            }
-            for (var i = 0; i < paginatedInterface.items.length; i++) {
-                final var item = paginatedInterface.items[i];
-                if (item == null || item.key() != key) continue;
-                refreshTemplateSlot(i);
-            }
+            if (key != getInterface().contentKey) super.refresh(key);
+            this.content = List.copyOf(getInterface().contentSupplier.get());
+            if (page >= pageCount()) page = Math.max(0, pageCount() - 1);
+            refreshContentSlots();
         }
 
         @Override
         public void refreshSlot(final int slot) {
-            Preconditions.checkElementIndex(slot, paginatedInterface.items.length, "Slot");
+            Preconditions.checkElementIndex(slot, getInterface().items.length, "Slot");
 
-            for (final var contentSlot : paginatedInterface.contentSlots) {
+            for (final var contentSlot : getInterface().contentSlots) {
                 if (contentSlot == slot) {
                     refreshContentSlots();
                     return;
@@ -158,18 +149,18 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
 
         private void refreshContentSlots() {
             final var offset = page * pageSize();
-            for (var i = 0; i < paginatedInterface.contentSlots.length; i++) {
-                final var viewSlot = paginatedInterface.contentSlots[i];
+            for (var i = 0; i < getInterface().contentSlots.length; i++) {
+                final var viewSlot = getInterface().contentSlots[i];
                 final var contentIndex = offset + i;
                 final T element = contentIndex < content.size() ? content.get(contentIndex) : null;
-                final var actionItem = element != null ? paginatedInterface.transformItem(element) : paginatedInterface.fallback;
+                final var actionItem = element != null ? getInterface().transformItem(element) : getInterface().fallback();
                 final var context = new SimpleRenderContext(this, i, 0, 0, viewSlot);
                 view().setItem(viewSlot, actionItem.renderer().render(context));
             }
         }
 
         private void refreshTemplateSlot(final int slot) {
-            final var item = paginatedInterface.items[slot];
+            final var item = getInterface().items[slot];
             if (item == null) {
                 view().setItem(slot, null);
                 return;
@@ -183,18 +174,19 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
             if (!event.getView().getTopInventory().equals(event.getClickedInventory())) return;
             final var slot = event.getSlot();
 
-            for (var i = 0; i < paginatedInterface.contentSlots.length; i++) {
-                if (paginatedInterface.contentSlots[i] != slot) continue;
+            // todo: no custom logic, add the click actions to the item, remove entire method when done
+            for (var i = 0; i < getInterface().contentSlots.length; i++) {
+                if (getInterface().contentSlots[i] != slot) continue;
                 final var contentIndex = page * pageSize() + i;
                 final T element = contentIndex < content.size() ? content.get(contentIndex) : null;
-                final var actionItem = element != null ? paginatedInterface.transformItem(element) : paginatedInterface.fallback();
+                final var actionItem = element != null ? getInterface().transformItem(element) : getInterface().fallback();
                 final var context = new SimpleClickContext(this, i, 0, 0, slot, event.getClick());
                 actionItem.action().click(context);
                 return;
             }
 
-            if (slot < 0 || slot >= paginatedInterface.items.length) return;
-            final var item = paginatedInterface.items[slot];
+            if (slot < 0 || slot >= getInterface().items.length) return;
+            final var item = getInterface().items[slot];
             if (item == null || item.action() == null) return;
             final var context = new SimpleClickContext(
                     this,
