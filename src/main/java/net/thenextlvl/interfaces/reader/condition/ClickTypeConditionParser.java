@@ -2,8 +2,7 @@ package net.thenextlvl.interfaces.reader.condition;
 
 import com.google.gson.JsonPrimitive;
 import net.thenextlvl.interfaces.ClickContext;
-import net.thenextlvl.interfaces.InterfaceSession;
-import net.thenextlvl.interfaces.reader.ConditionParser;
+import net.thenextlvl.interfaces.reader.ClickConditionParser;
 import net.thenextlvl.interfaces.reader.ParserConditions;
 import net.thenextlvl.interfaces.reader.ParserContext;
 import net.thenextlvl.interfaces.reader.ParserException;
@@ -14,7 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-public final class ClickTypeConditionParser implements ConditionParser<JsonPrimitive> {
+public final class ClickTypeConditionParser implements ClickConditionParser<JsonPrimitive> {
     public static final ClickTypeConditionParser INSTANCE = new ClickTypeConditionParser();
 
     private static final Map<String, Predicate<ClickType>> clickTypes = Map.ofEntries(
@@ -44,7 +43,7 @@ public final class ClickTypeConditionParser implements ConditionParser<JsonPrimi
     }
 
     @Override
-    public Predicate<InterfaceSession> parse(final JsonPrimitive element, final ParserContext context) throws ParserException {
+    public Predicate<ClickContext> parse(final JsonPrimitive element, final ParserContext context) throws ParserException {
         final var value = element.getAsString()
                 .toLowerCase(Locale.ROOT)
                 .replace("-", "_")
@@ -58,10 +57,6 @@ public final class ClickTypeConditionParser implements ConditionParser<JsonPrimi
                 .map(clickTypePredicate -> invert ? clickTypePredicate.negate() : clickTypePredicate)
                 .orElseThrow(() -> new ParserException("Unknown click type: %s", key));
 
-        return session -> {
-            if (session instanceof final ClickContext clickContext)
-                return type.test(clickContext.clickType());
-            throw new IllegalArgumentException("Session is not a ClickContext");
-        };
+        return clickContext -> type.test(clickContext.clickType());
     }
 }
