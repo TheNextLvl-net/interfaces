@@ -35,11 +35,11 @@ final class SimpleLayout implements Layout {
         this.size = 0;
     }
 
-    private int readRows(String pattern) {
+    private int readRows(final String pattern) {
         return (int) pattern.chars().filter(c -> c == '\n').count() + 1;
     }
 
-    private int readSize(String pattern) {
+    private int readSize(final String pattern) {
         return (int) pattern.chars().filter(c -> c != '\n').count();
     }
 
@@ -59,8 +59,8 @@ final class SimpleLayout implements Layout {
     }
 
     @Override
-    public boolean containsMask(final char c) {
-        return items.containsKey(c);
+    public boolean containsMask(final char mask) {
+        return items.containsKey(mask);
     }
 
     @Override
@@ -85,7 +85,10 @@ final class SimpleLayout implements Layout {
 
     @Override
     public Layout.Builder toBuilder() {
-        return new Builder();
+        final var builder = new Builder();
+        builder.pattern = pattern;
+        items.forEach(builder::mask);
+        return builder;
     }
 
     static final class Builder implements Layout.Builder {
@@ -99,8 +102,8 @@ final class SimpleLayout implements Layout {
         }
 
         @Override
-        public Layout.Builder mask(final char c, final ItemStack item) {
-            this.items.put(c, context -> item);
+        public Layout.Builder mask(final char mask, final ItemStack item) {
+            this.items.put(mask, context -> item);
             return this;
         }
 
