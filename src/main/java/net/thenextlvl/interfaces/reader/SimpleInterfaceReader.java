@@ -10,9 +10,11 @@ import net.kyori.adventure.identity.Identity;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.Tag;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.thenextlvl.interfaces.ActionItem;
 import net.thenextlvl.interfaces.ClickAction;
+import net.thenextlvl.interfaces.ClickContext;
 import net.thenextlvl.interfaces.Interface;
 import net.thenextlvl.interfaces.InterfaceSession;
 import net.thenextlvl.interfaces.Layout;
@@ -44,6 +46,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.slf4j.Logger;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -82,9 +85,11 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
             new RegisteredActionParser<>("close_interface", JsonObject.class, CloseInterfaceActionParser.INSTANCE)
     ));
     private final Set<RegisteredConditionParser<?>> conditionParsers = new CopyOnWriteArraySet<>(Set.of(
-            new RegisteredConditionParser<>("click_type", JsonPrimitive.class, ClickTypeConditionParser.INSTANCE),
             new RegisteredConditionParser<>("permission", JsonPrimitive.class, PermissionConditionParser.INSTANCE),
             new RegisteredConditionParser<>("no_permission", JsonPrimitive.class, NoPermissionConditionParser.INSTANCE)
+    ));
+    private final Set<RegisteredClickConditionParser<?>> clickConditionParsers = new CopyOnWriteArraySet<>(Set.of(
+            new RegisteredClickConditionParser<>("click_type", JsonPrimitive.class, ClickTypeConditionParser.INSTANCE)
     ));
     private final Set<RegisteredItemParser<?>> itemParsers = new CopyOnWriteArraySet<>(Set.of(
             new RegisteredItemParser<>("profile", JsonPrimitive.class, ProfileItemParser.INSTANCE),
@@ -106,6 +111,9 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
         } catch (final ParserException e) {
             logger.warn("Failed to render text for player '{}': {}", audience.getOrDefault(Identity.NAME, "?"), e.getMessage());
             return Component.text(e.getMessage(), NamedTextColor.RED);
+        } catch (final Throwable t) {
+            logger.error("Failed to render text for player '{}'", audience.getOrDefault(Identity.NAME, "?"), t);
+            return Component.text(t.getMessage(), NamedTextColor.RED);
         }
     }
 
@@ -113,9 +121,9 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     public Component renderText(final Audience audience, final String text, final TagResolver... resolvers) {
         try {
             return renderer.renderText(text, audience, resolvers);
-        } catch (final ParserException e) {
-            logger.warn("Failed to render text for player '{}': {}", audience.getOrDefault(Identity.NAME, "?"), e.getMessage());
-            return Component.text(e.getMessage(), NamedTextColor.RED);
+        } catch (final Throwable t) {
+            logger.error("Failed to render text for player '{}'", audience.getOrDefault(Identity.NAME, "?"), t);
+            return Component.text(t.getMessage(), NamedTextColor.RED);
         }
     }
 
@@ -140,6 +148,13 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     ) {
     }
 
+    private record RegisteredClickConditionParser<T extends JsonElement>(
+            String id,
+            Class<T> type,
+            ClickConditionParser<T> parser
+    ) {
+    }
+
     private record RegisteredItemParser<T extends JsonElement>(
             String id,
             Class<T> type,
@@ -155,7 +170,7 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     }
 
     @Override
-    public <T extends JsonElement> InterfaceReader registerActionParser(final String id, final Class<T> type, final ClickActionParser<T> parser) {
+    public <T extends JsonElement> InterfaceReader registerClickActionParser(final String id, final Class<T> type, final ClickActionParser<T> parser) {
         clickActionParsers.add(new RegisteredClickActionParser<>(id, type, parser));
         return this;
     }
@@ -169,6 +184,12 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     @Override
     public <T extends JsonElement> InterfaceReader registerConditionParser(final String id, final Class<T> type, final ConditionParser<T> parser) {
         conditionParsers.add(new RegisteredConditionParser<>(id, type, parser));
+        return this;
+    }
+
+    @Override
+    public <T extends JsonElement> InterfaceReader registerClickConditionParser(final String id, final Class<T> type, final ClickConditionParser<T> parser) {
+        clickConditionParsers.add(new RegisteredClickConditionParser<>(id, type, parser));
         return this;
     }
 
@@ -257,7 +278,7 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     }
 
     @Override
-    public Interface.Builder readResource(final String path) throws IOException {
+    public Interface.Builder readResource(final String path) throws IOException, NullPointerException {
         try (final var resource = getClass().getClassLoader().getResourceAsStream(path)) {
             return read(Objects.requireNonNull(resource, "Missing resource: " + path));
         }
@@ -290,7 +311,7 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
                 .map(s -> s.charAt(0))
                 .orElseThrow(() -> new IllegalStateException("Missing or invalid 'content_mask' (expected a single character)"));
 
-        var template = read(object);
+        final var template = read(object);
 
         final var builder = PaginatedInterface.<T>builder(template)
                 .mask(contentMask);
@@ -314,7 +335,8 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     @Override
     public <T> PaginatedInterface.Builder<T> readPaginatedResource(final String path) throws IOException {
         try (final var resource = getClass().getClassLoader().getResourceAsStream(path)) {
-            return readPaginated(Objects.requireNonNull(resource, "Missing resource: " + path));
+            if (resource != null) return readPaginated(resource);
+            throw new FileNotFoundException(path);
         }
     }
 
@@ -341,11 +363,11 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
         return results.stream()
                 .reduce(ClickAction::andThen)
                 .map(clickAction -> parseActions(object)
-                        .map(session -> (ClickAction) session::accept)
+                        .map(session -> (ClickAction) action -> session.accept(action.session()))
                         .map(clickAction::andThen)
                         .orElse(clickAction))
                 .or(() -> parseActions(object)
-                        .map(session -> session::accept));
+                        .map(session -> action -> session.accept(action.session())));
     }
 
     @Override
@@ -389,6 +411,29 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
                 logger.warn("Failed to parse condition '{}': {}", parser.id(), e.getMessage());
             } catch (final RuntimeException e) {
                 logger.warn("Failed to parse condition '{}': {}", parser.id(), e.getMessage(), e);
+            }
+        }
+        return results.stream().reduce(Predicate::and);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public Optional<Predicate<ClickContext>> parseClickConditions(final JsonObject object) {
+        final List<Predicate<ClickContext>> results = new LinkedList<>();
+        for (final var p : clickConditionParsers) {
+            final var parser = (RegisteredClickConditionParser<JsonElement>) p;
+            final var element = object.get(parser.id());
+            if (!parser.type().isInstance(element)) {
+                if (element != null) logger.warn("Click condition '{}' expected {}, but got {}", parser.id(),
+                        parser.type().getSimpleName(), element.getClass().getSimpleName());
+                continue;
+            }
+            try {
+                results.addFirst(parser.parser().parse(parser.type().cast(element), this));
+            } catch (final ParserException e) {
+                logger.warn("Failed to parse click condition '{}': {}", parser.id(), e.getMessage());
+            } catch (final RuntimeException e) {
+                logger.warn("Failed to parse click condition '{}': {}", parser.id(), e.getMessage(), e);
             }
         }
         return results.stream().reduce(Predicate::and);
@@ -451,7 +496,8 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     private boolean isKnownActionKey(final String key) {
         return actionParsers.stream().anyMatch(p -> p.id().equals(key))
                 || clickActionParsers.stream().anyMatch(p -> p.id().equals(key))
-                || conditionParsers.stream().anyMatch(p -> p.id().equals(key));
+                || conditionParsers.stream().anyMatch(p -> p.id().equals(key))
+                || clickConditionParsers.stream().anyMatch(p -> p.id().equals(key));
     }
 
     private Renderer readItemRenderer(final JsonObject object) throws ParserException {
@@ -481,11 +527,16 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
                     for (final var key : object.keySet()) {
                         if (!isKnownActionKey(key)) logger.warn("Unknown click action '{}': no parser available", key);
                     }
-                    return parseClickActions(object).map(actions ->
-                            parseConditions(object).<ClickAction>map(conditions -> context -> {
-                                if (conditions.test(context)) actions.click(context);
-                            }).orElse(actions)
-                    ).orElse(null);
+                    return parseClickActions(object).map(actions -> {
+                        final var conditions = parseConditions(object);
+                        final var clickConditions = parseClickConditions(object);
+                        if (conditions.isEmpty() && clickConditions.isEmpty()) return actions;
+                        return (ClickAction) context -> {
+                            if (conditions.isPresent() && !conditions.get().test(context.session())) return;
+                            if (clickConditions.isPresent() && !clickConditions.get().test(context)) return;
+                            actions.click(context);
+                        };
+                    }).orElse(null);
                 })
                 .filter(Objects::nonNull)
                 .reduce(ClickAction::andThen);
@@ -497,7 +548,12 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
                 .map(JsonObject.class::cast)
                 .map(object -> {
                     for (final var key : object.keySet()) {
-                        if (!isKnownActionKey(key)) logger.warn("Unknown click action '{}': no parser available", key);
+                        if (!isKnownActionKey(key)) logger.warn("Unknown action '{}': no parser available", key);
+                    }
+                    for (final var p : clickConditionParsers) {
+                        if (object.has(p.id())) {
+                            logger.warn("Click condition '{}' is not applicable in a non-click context", p.id());
+                        }
                     }
                     return parseActions(object).map(actions ->
                             parseConditions(object).<Consumer<InterfaceSession>>map(conditions -> session -> {
@@ -507,5 +563,23 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
                 })
                 .filter(Objects::nonNull)
                 .reduce(Consumer::andThen);
+    }
+
+    @SuppressWarnings("PatternValidation")
+    public static TagResolver.Builder resolveTags(final JsonObject object) {
+        final var builder = TagResolver.builder();
+
+        for (final var entry : object.entrySet()) {
+            if (entry.getKey().equals("content")) continue;
+            if (entry.getKey().length() <= 1) {
+                logger.warn("Empty text attribute found in {}", object);
+            } else if (entry.getKey().startsWith("$")) {
+                builder.tag(entry.getKey().substring(1), Tag.preProcessParsed(entry.getValue().getAsString()));
+            } else {
+                logger.warn("Invalid text attribute '{}', did you mean '${}' to define a tag?", entry.getKey(), entry.getKey());
+            }
+        }
+
+        return builder;
     }
 }
