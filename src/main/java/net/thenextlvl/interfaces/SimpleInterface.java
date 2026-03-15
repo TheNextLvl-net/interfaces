@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MenuType;
@@ -122,7 +123,7 @@ non-sealed class SimpleInterface implements Interface {
         open(player, new ConcurrentHashMap<>());
     }
 
-    private void open(final Player player, final Map<String, Object> state) {
+    private void open(final Player player, final Map<String, @Nullable Object> state) {
         final var view = type.create(player, title(player));
         final var session = createSession(player, view, state);
         session.refresh();
@@ -130,7 +131,7 @@ non-sealed class SimpleInterface implements Interface {
         player.openInventory(view);
     }
 
-    protected Session createSession(final Player player, final InventoryView view, final Map<String, Object> state) {
+    protected Session createSession(final Player player, final InventoryView view, final Map<String, @Nullable Object> state) {
         return new Session(player, view, this, state);
     }
 
@@ -174,12 +175,12 @@ non-sealed class SimpleInterface implements Interface {
     }
 
     public static sealed class Session implements InterfaceSession permits SimplePaginatedInterface.Session {
-        protected final Map<String, Object> state;
+        protected final Map<String, @Nullable Object> state;
         private final SimpleInterface interface_;
         private final InventoryView view;
         private final Player player;
 
-        Session(final Player player, final InventoryView view, final SimpleInterface interface_, final Map<String, Object> state) {
+        Session(final Player player, final InventoryView view, final SimpleInterface interface_, final Map<String, @Nullable Object> state) {
             this.interface_ = interface_;
             this.player = player;
             this.view = view;
@@ -214,9 +215,21 @@ non-sealed class SimpleInterface implements Interface {
         }
 
         @Override
-        public final void state(final String key, final @Nullable Object value) {
-            if (value == null) state.remove(key);
-            else state.put(key, value);
+        @SuppressWarnings("unchecked")
+        public final <T> @Nullable T state(final String key, final @Nullable T value) {
+            return (T) state.put(key, value);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public @Nullable <T> T stateIfAbsent(final String key, @Nullable final T value) {
+            return (T) state.putIfAbsent(key, value);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public final <T> @Nullable T removeState(final String key) {
+            return (T) state.remove(key);
         }
 
         @Override
@@ -244,31 +257,27 @@ non-sealed class SimpleInterface implements Interface {
 
         @Override
         public void refresh() {
-            for (var i = 0; i < interface_.items.length; i++) {
-                refreshSlot(i);
-            }
+            for (var i = 0; i < interface_.items.length; i++) refreshSlot(i);
         }
 
         @Override
         public void refresh(final char key) {
-            for (var i = 0; i < interface_.items.length; i++) {
-                final var item = interface_.items[i];
+            for (var slot = 0; slot < interface_.items.length; slot++) {
+                final var item = interface_.items[slot];
                 if (item == null || item.key() != key) continue;
-                refreshSlot(i);
+                refreshSlot(slot, item);
             }
         }
 
         @Override
-        public void refreshSlot(final int slot) {
+        public void refreshSlot(final int slot) throws IndexOutOfBoundsException {
             Preconditions.checkElementIndex(slot, interface_.items.length, "Slot");
-            final var item = interface_.items[slot];
-            if (item == null) {
-                view.setItem(slot, null);
-                return;
-            }
+            refreshSlot(slot, interface_.items[slot]);
+        }
 
-            final var context = new SimpleRenderContext(this, item.index(), item.row(), item.column(), slot);
-            view.setItem(slot, item.renderer().render(context));
+        public void refreshSlot(final int slot, final @Nullable Item item) throws IndexOutOfBoundsException {
+            final var context = item != null ? new SimpleRenderContext(this, item.index(), item.row(), item.column(), slot) : null;
+            view.setItem(slot, context != null ? item.renderer().render(context) : null);
         }
 
         public void handleClick(final InventoryClickEvent event) {
@@ -286,6 +295,11 @@ non-sealed class SimpleInterface implements Interface {
                     event.getClick()
             );
             item.action().click(context);
+        }
+
+        @Override
+        public Inventory getInventory() {
+            return view.getTopInventory();
         }
     }
 
