@@ -18,8 +18,8 @@ public final class HideTooltipItemParser implements ItemParser<JsonPrimitive> {
     @Override
     public Function<ItemStack, ItemStack> parse(final JsonPrimitive element, final ParserContext context) {
         final var hide = element.getAsBoolean();
-        final var display = TooltipDisplay.tooltipDisplay().hideTooltip(hide);
         return itemStack -> {
+            final var display = TooltipDisplay.tooltipDisplay().hideTooltip(hide);
             itemStack.setData(DataComponentTypes.TOOLTIP_DISPLAY, display);
             return itemStack;
         };
