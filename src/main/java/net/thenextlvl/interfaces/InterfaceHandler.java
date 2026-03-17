@@ -7,29 +7,37 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.jspecify.annotations.Nullable;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 final class InterfaceHandler implements Listener {
-    public static final InterfaceHandler INSTANCE = new InterfaceHandler();
-
-    private final Map<Player, SimpleInterface.Session> views = new HashMap<>();
+    private static final Map<JavaPlugin, @Nullable InterfaceHandler> instances = new ConcurrentHashMap<>();
+    private final Map<Player, SimpleInterface.Session> sessions = new ConcurrentHashMap<>();
 
     private InterfaceHandler() {
     }
 
-    public SimpleInterface.@Nullable Session getSession(final Player player) {
-        return views.get(player);
+    public static InterfaceHandler getInstance(final JavaPlugin plugin) {
+        return instances.computeIfAbsent(plugin, ignored -> {
+            final var instance = new InterfaceHandler();
+            plugin.getServer().getPluginManager().registerEvents(instance, plugin);
+            return instance;
+        });
     }
 
-    public void removeView(final Player player) {
-        views.remove(player);
+    private SimpleInterface.@Nullable Session getSession(final Player player) {
+        return sessions.get(player);
     }
 
-    public void setView(final Player player, final SimpleInterface.Session session) {
-        views.put(player, session);
+    private void removeSession(final Player player) {
+        sessions.remove(player);
+    }
+
+    public void setSession(final Player player, final SimpleInterface.Session session) {
+        sessions.put(player, session);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -50,7 +58,7 @@ final class InterfaceHandler implements Listener {
 
         final var consumer = session.getInterface().onClose();
         if (consumer != null) consumer.accept(session, event.getReason());
-        removeView(player);
+        removeSession(player);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
