@@ -108,9 +108,10 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     }
 
     @Override
-    public Component renderText(final Audience audience, final JsonElement text, final TagResolver... resolvers) {
+    public Component renderText(final Audience audience, final JsonElement element, final TagResolver... resolvers) {
         try {
-            return renderer.renderText(text, audience, resolvers);
+            if (element.isJsonObject()) return renderText(element.getAsJsonObject(), audience, resolvers);
+            return renderer.renderText(element.getAsString(), audience, resolvers);
         } catch (final ParserException e) {
             logger.warn("Failed to render text for player '{}': {}", audience.getOrDefault(Identity.NAME, "?"), e.getMessage());
             return Component.text(e.getMessage(), NamedTextColor.RED);
@@ -118,6 +119,29 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
             logger.error("Failed to render text for player '{}'", audience.getOrDefault(Identity.NAME, "?"), t);
             return Component.text(t.getMessage(), NamedTextColor.RED);
         }
+    }
+
+    private Component renderText(final JsonObject object, final Audience audience, final TagResolver[] resolvers) throws ParserException {
+        final var text = ParserConditions.checkNonNull(object.get("content"), "Text 'content' is missing").getAsString();
+        return renderer.renderText(text, audience, resolveTags(object).resolvers(resolvers).build());
+    }
+
+    @SuppressWarnings("PatternValidation")
+    public TagResolver.Builder resolveTags(final JsonObject object) {
+        final var builder = TagResolver.builder();
+
+        for (final var entry : object.entrySet()) {
+            if (entry.getKey().equals("content")) continue;
+            if (entry.getKey().length() <= 1) {
+                logger.warn("Empty text attribute found in {}", object);
+            } else if (entry.getKey().startsWith("$")) {
+                builder.tag(entry.getKey().substring(1), Tag.preProcessParsed(entry.getValue().getAsString()));
+            } else {
+                logger.warn("Invalid text attribute '{}', did you mean '${}' to define a tag?", entry.getKey(), entry.getKey());
+            }
+        }
+
+        return builder;
     }
 
     @Override
@@ -566,23 +590,5 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
                 })
                 .filter(Objects::nonNull)
                 .reduce(Consumer::andThen);
-    }
-
-    @SuppressWarnings("PatternValidation")
-    public static TagResolver.Builder resolveTags(final JsonObject object) {
-        final var builder = TagResolver.builder();
-
-        for (final var entry : object.entrySet()) {
-            if (entry.getKey().equals("content")) continue;
-            if (entry.getKey().length() <= 1) {
-                logger.warn("Empty text attribute found in {}", object);
-            } else if (entry.getKey().startsWith("$")) {
-                builder.tag(entry.getKey().substring(1), Tag.preProcessParsed(entry.getValue().getAsString()));
-            } else {
-                logger.warn("Invalid text attribute '{}', did you mean '${}' to define a tag?", entry.getKey(), entry.getKey());
-            }
-        }
-
-        return builder;
     }
 }

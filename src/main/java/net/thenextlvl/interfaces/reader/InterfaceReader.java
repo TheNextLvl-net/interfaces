@@ -279,39 +279,5 @@ public interface InterfaceReader extends ParserContext {
          */
         @Contract(value = "_, _, _ -> new", pure = true)
         Component renderText(String text, Audience audience, TagResolver... resolvers);
-
-        /**
-         * Renders text from a JSON element.
-         *
-         * @param element   The JSON element
-         * @param audience  The audience
-         * @param resolvers The tag resolvers
-         * @return The rendered text
-         * @see #renderText(JsonObject, Audience, TagResolver...)
-         * @see #renderText(String, Audience, TagResolver...)
-         * @since 0.2.0
-         */
-        @Contract(value = "_, _, _ -> new", pure = true)
-        default Component renderText(final JsonElement element, final Audience audience, final TagResolver... resolvers) throws ParserException {
-            if (element.isJsonObject()) return renderText(element.getAsJsonObject(), audience, resolvers);
-            return renderText(element.getAsString(), audience, resolvers);
-        }
-
-        /**
-         * Renders text from a JSON object.
-         *
-         * @param object    The JSON object
-         * @param audience  The audience
-         * @param resolvers The tag resolvers
-         * @return The rendered text
-         * @see #renderText(JsonElement, Audience, TagResolver...)
-         * @see #renderText(String, Audience, TagResolver...)
-         * @since 0.2.0
-         */
-        @Contract(value = "_, _, _ -> new", pure = true)
-        default Component renderText(final JsonObject object, final Audience audience, final TagResolver... resolvers) throws ParserException {
-            final var text = ParserConditions.checkNonNull(object.get("content"), "Text 'content' is missing").getAsString();
-            return renderText(text, audience, SimpleInterfaceReader.resolveTags(object).resolvers(resolvers).build());
-        }
     }
 }
