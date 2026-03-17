@@ -28,14 +28,6 @@ final class InterfaceHandler implements Listener {
         });
     }
 
-    private SimpleInterface.@Nullable Session getSession(final Player player) {
-        return sessions.get(player);
-    }
-
-    private void removeSession(final Player player) {
-        sessions.remove(player);
-    }
-
     public void setSession(final Player player, final SimpleInterface.Session session) {
         sessions.put(player, session);
     }
@@ -43,7 +35,7 @@ final class InterfaceHandler implements Listener {
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onOpen(final InventoryOpenEvent event) {
         if (!(event.getPlayer() instanceof final Player player)) return;
-        final var session = getSession(player);
+        final var session = sessions.get(player);
         if (session == null || !event.getView().equals(session.view())) return;
 
         final var consumer = session.getInterface().onOpen();
@@ -53,18 +45,18 @@ final class InterfaceHandler implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onClose(final InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof final Player player)) return;
-        final var session = getSession(player);
+        final var session = sessions.get(player);
         if (session == null || !event.getView().equals(session.view())) return;
 
         final var consumer = session.getInterface().onClose();
         if (consumer != null) consumer.accept(session, event.getReason());
-        removeSession(player);
+        sessions.remove(player);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onInventoryClick(final InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof final Player player)) return;
-        final var session = getSession(player);
+        final var session = sessions.get(player);
         if (session == null || !event.getView().equals(session.view())) return;
 
         session.handleClick(event);
