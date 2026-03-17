@@ -9,6 +9,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MenuType;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.intellij.lang.annotations.MagicConstant;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.Range;
@@ -258,10 +259,22 @@ public sealed interface Interface permits SimpleInterface, PaginatedInterface {
         Builder onClose(@Nullable BiConsumer<InterfaceSession, InventoryCloseEvent.Reason> handler);
 
         /**
-         * Builds the interface.
+         * Builds the interface for the given plugin.
          *
          * @return the interface
          * @throws IllegalArgumentException if the interface is invalid
+         * @since 0.4.0
+         */
+        @Contract(value = "_ -> new", pure = true)
+        Interface build(JavaPlugin plugin) throws IllegalArgumentException;
+
+        /**
+         * Builds the interface for the plugin that provides this class.
+         *
+         * @return the interface
+         * @throws IllegalArgumentException if the interface is invalid
+         * @see JavaPlugin#getProvidingPlugin(Class)
+         * @see #build(JavaPlugin)
          * @since 0.1.0
          */
         @Contract(value = " -> new", pure = true)
@@ -269,7 +282,7 @@ public sealed interface Interface permits SimpleInterface, PaginatedInterface {
     }
 
     // todo: remove
-    static Interface example() {
+    static Interface example(final JavaPlugin plugin) {
 
         try {
             final var example = Interface.class.getResourceAsStream("example.json");

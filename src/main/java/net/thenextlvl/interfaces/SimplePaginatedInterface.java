@@ -5,6 +5,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -22,13 +23,14 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
     private final int[] contentSlots;
 
     SimplePaginatedInterface(
+            final JavaPlugin plugin,
             final SimpleInterface template,
             final char contentKey,
             final Supplier<? extends Collection<? extends T>> contentSupplier,
             final Function<T, ActionItem> itemFunction,
             final ActionItem fallback
     ) {
-        super(template.menuType(), template.title, template.layout(), template.onOpen(), template.onClose(), template.slots());
+        super(plugin, template.menuType(), template.title, template.layout(), template.onOpen(), template.onClose(), template.slots());
         this.contentKey = contentKey;
         this.contentSupplier = contentSupplier;
         this.itemFunction = itemFunction;
@@ -187,12 +189,17 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
         }
 
         @Override
-        public PaginatedInterface<T> build() {
+        public PaginatedInterface<T> build(final JavaPlugin plugin) {
             Preconditions.checkState(contentKey != null, "Content mask key not set");
             Preconditions.checkState(contentSupplier != null, "Content not set");
             Preconditions.checkState(itemFunction != null, "Content mapping function not set");
             template.slot(contentKey, fallback);
-            return new SimplePaginatedInterface<>(template.build(), contentKey, contentSupplier, itemFunction, fallback);
+            return new SimplePaginatedInterface<>(plugin, template.build(), contentKey, contentSupplier, itemFunction, fallback);
+        }
+
+        @Override
+        public PaginatedInterface<T> build() {
+            return build(JavaPlugin.getProvidingPlugin(SimplePaginatedInterface.class));
         }
     }
 }

@@ -1,5 +1,6 @@
 package net.thenextlvl.interfaces;
 
+import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.Contract;
 
 import java.util.Collection;
@@ -110,9 +111,20 @@ public sealed interface PaginatedInterface<T> extends Interface permits SimplePa
         Builder<T> fallback(ActionItem fallback);
 
         /**
-         * Builds the paginated interface with the configured settings.
+         * Builds the paginated interface with the configured settings for the given plugin.
          *
          * @return the paginated interface
+         * @since 0.4.0
+         */
+        @Contract(value = "_ -> new", pure = true)
+        PaginatedInterface<T> build(JavaPlugin plugin);
+
+        /**
+         * Builds the paginated interface with the configured settings for the plugin that provides this class.
+         *
+         * @return the paginated interface
+         * @see JavaPlugin#getProvidingPlugin(Class)
+         * @see #build(JavaPlugin)
          * @since 0.3.0
          */
         @Contract(value = " -> new", pure = true)

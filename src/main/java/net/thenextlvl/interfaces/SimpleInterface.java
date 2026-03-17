@@ -25,6 +25,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 non-sealed class SimpleInterface implements Interface {
+    private final JavaPlugin plugin;
+
     private final @Nullable BiConsumer<InterfaceSession, InventoryCloseEvent.Reason> onClose;
     private final @Nullable Consumer<InterfaceSession> onOpen;
 
@@ -36,6 +38,7 @@ non-sealed class SimpleInterface implements Interface {
     private final MenuType type;
 
     protected SimpleInterface(
+            final JavaPlugin plugin,
             final MenuType type,
             @Nullable final Function<Player, Component> title,
             final Layout layout,
@@ -43,6 +46,7 @@ non-sealed class SimpleInterface implements Interface {
             @Nullable final BiConsumer<InterfaceSession, InventoryCloseEvent.Reason> onClose,
             final Map<Character, ActionItem> slots
     ) {
+        this.plugin = plugin;
         this.type = type;
         this.title = title;
         this.layout = layout;
@@ -123,7 +127,7 @@ non-sealed class SimpleInterface implements Interface {
         final var view = type.create(player, title(player));
         final var session = createSession(player, view, state);
         session.refresh();
-        InterfaceHandler.INSTANCE.setView(player, session);
+        InterfaceHandler.getInstance(plugin).setSession(player, session);
         player.openInventory(view);
     }
 
@@ -398,14 +402,20 @@ non-sealed class SimpleInterface implements Interface {
 
         @Override
         @SuppressWarnings("ClassEscapesDefinedScope")
-        public SimpleInterface build() throws IllegalArgumentException {
+        public SimpleInterface build(final JavaPlugin plugin) throws IllegalArgumentException {
             Preconditions.checkArgument(type != null, "Menu type not set");
             final var dimensions = this.dimensions.get(type);
             Preconditions.checkArgument(dimensions != null, "Unsupported menu type: %s", type);
             if (!layout.pattern().isEmpty() || layout.hasMasks() || !slots.isEmpty()) {
                 validatePattern(dimensions.getKey(), dimensions.getValue());
             }
-            return new SimpleInterface(type, title, layout, onOpen, onClose, slots);
+            return new SimpleInterface(plugin, type, title, layout, onOpen, onClose, slots);
+        }
+
+        @Override
+        @SuppressWarnings("ClassEscapesDefinedScope")
+        public SimpleInterface build() throws IllegalArgumentException {
+            return build(JavaPlugin.getProvidingPlugin(SimpleInterface.class));
         }
 
         private final Map<MenuType, Map.Entry<Integer, Integer>> dimensions = Map.ofEntries(
@@ -462,10 +472,5 @@ non-sealed class SimpleInterface implements Interface {
                 Preconditions.checkArgument(patternChars.contains(c), "Mask or slot '%s' is not defined in pattern", c);
             });
         }
-    }
-
-    static {
-        final var plugin = JavaPlugin.getProvidingPlugin(SimpleInterface.class);
-        plugin.getServer().getPluginManager().registerEvents(InterfaceHandler.INSTANCE, plugin);
     }
 }
