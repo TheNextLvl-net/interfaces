@@ -67,8 +67,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
-    private static final JavaPlugin plugin = JavaPlugin.getProvidingPlugin(SimpleInterfaceReader.class);
-    private static final Logger logger = plugin.getComponentLogger();
+    private final Logger logger;
 
     private final Set<RegisteredClickActionParser<?>> clickActionParsers = new CopyOnWriteArraySet<>(Set.of(
             new RegisteredClickActionParser<>("cycle_page", JsonPrimitive.class, CyclePageActionParser.INSTANCE),
@@ -81,7 +80,6 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
             new RegisteredActionParser<>("run_console_command", JsonPrimitive.class, ConsoleCommandActionParser.INSTANCE),
             new RegisteredActionParser<>("play_sound", JsonObject.class, SoundActionParser.INSTANCE),
             new RegisteredActionParser<>("transfer", JsonPrimitive.class, TransferActionParser.INSTANCE),
-            new RegisteredActionParser<>("connect", JsonPrimitive.class, ConnectActionParser.INSTANCE),
             new RegisteredActionParser<>("close_interface", JsonObject.class, CloseInterfaceActionParser.INSTANCE)
     ));
     private final Set<RegisteredConditionParser<?>> conditionParsers = new CopyOnWriteArraySet<>(Set.of(
@@ -103,6 +101,11 @@ final class SimpleInterfaceReader implements InterfaceReader, ParserContext {
     private TextRenderer renderer = (text, audience, resolvers) -> {
         return MiniMessage.miniMessage().deserialize(text, resolvers);
     };
+
+    public SimpleInterfaceReader(final JavaPlugin plugin) {
+        registerActionParser("connect", JsonPrimitive.class, new ConnectActionParser(plugin));
+        this.logger = plugin.getComponentLogger();
+    }
 
     @Override
     public Component renderText(final Audience audience, final JsonElement text, final TagResolver... resolvers) {

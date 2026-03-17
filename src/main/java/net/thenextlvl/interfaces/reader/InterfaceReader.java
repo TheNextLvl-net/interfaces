@@ -9,6 +9,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.thenextlvl.interfaces.Interface;
 import net.thenextlvl.interfaces.PaginatedInterface;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.Contract;
 
 import java.io.IOException;
@@ -23,14 +24,28 @@ import java.nio.file.Path;
  */
 public interface InterfaceReader extends ParserContext {
     /**
-     * Creates a new interface reader.
+     * Creates a new interface reader for a given plugin.
+     *
+     * @param plugin The plugin to create the reader for
+     * @return The interface reader
+     * @since 0.4.0
+     */
+    @Contract(value = "_ -> new", pure = true)
+    static InterfaceReader reader(final JavaPlugin plugin) {
+        return new SimpleInterfaceReader(plugin);
+    }
+
+    /**
+     * Creates a new interface reader for the plugin that provides this class.
      *
      * @return The interface reader
+     * @see JavaPlugin#getProvidingPlugin(Class)
+     * @see #reader(JavaPlugin)
      * @since 0.2.0
      */
     @Contract(value = " -> new", pure = true)
     static InterfaceReader reader() {
-        return new SimpleInterfaceReader();
+        return reader(JavaPlugin.getProvidingPlugin(InterfaceReader.class));
     }
 
     /**
