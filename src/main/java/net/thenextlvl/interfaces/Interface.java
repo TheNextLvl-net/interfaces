@@ -1,9 +1,6 @@
 package net.thenextlvl.interfaces;
 
-import com.google.common.base.Preconditions;
 import net.kyori.adventure.text.Component;
-import net.thenextlvl.interfaces.reader.InterfaceReader;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryType;
@@ -16,7 +13,6 @@ import org.jetbrains.annotations.Range;
 import org.jetbrains.annotations.Unmodifiable;
 import org.jspecify.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -279,43 +275,5 @@ public sealed interface Interface permits SimpleInterface, PaginatedInterface {
          */
         @Contract(value = " -> new", pure = true)
         Interface build() throws IllegalArgumentException;
-    }
-
-    // todo: remove
-    static Interface example(final JavaPlugin plugin) {
-
-        try {
-            final var example = Interface.class.getResourceAsStream("example.json");
-            Preconditions.checkState(example != null, "Missing example.json");
-            final var read = InterfaceReader.reader()
-                    .read(example);
-            System.out.println(read);
-        } catch (final IOException e) {
-            e.printStackTrace(System.err);
-        }
-
-        return Interface.builder()
-                .title(Component.text("Example"))
-                .layout(Layout.builder()
-                        .pattern("#-#-#-#-#",
-                                "-       -",
-                                "# abcba #",
-                                "-       -",
-                                "#-#-x-#-#")
-                        .mask('a', context -> ItemStack.of(Material.IRON_INGOT, context.slot()))
-                        .mask('b', context -> ItemStack.of(Material.GOLD_INGOT, context.index() + 1))
-                        .mask('c', context -> ItemStack.of(Material.DIAMOND, context.row()))
-                        .mask('#', context -> ItemStack.of(Material.BLACK_STAINED_GLASS_PANE, context.index() + 1))
-                        .mask(' ', context -> ItemStack.of(Material.LIGHT_GRAY_STAINED_GLASS_PANE, context.column()))
-                        .mask('-', ItemStack.of(Material.RED_STAINED_GLASS_PANE))
-                        .build())
-                .rows(5)
-                .slot('x', ItemStack.of(Material.BARRIER), ClickAction.of(player -> {
-                    System.out.println(player.getName() + " clicked the barrier");
-                    player.closeInventory();
-                }))
-                .onOpen(context -> System.out.println(context.player().getName() + " opened the inventory"))
-                .onClose((context, reason) -> System.out.println(context.player().getName() + " closed the inventory with reason " + reason))
-                .build();
     }
 }
