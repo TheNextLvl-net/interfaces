@@ -10,10 +10,11 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.function.Consumer;
 
 public final class ConnectActionParser implements ActionParser<JsonPrimitive> {
-    public static final ConnectActionParser INSTANCE = new ConnectActionParser();
-    private static final JavaPlugin plugin = JavaPlugin.getProvidingPlugin(ConnectActionParser.class);
+    private final JavaPlugin plugin;
 
-    private ConnectActionParser() {
+    public ConnectActionParser(final JavaPlugin plugin) {
+        plugin.getServer().getMessenger().registerOutgoingPluginChannel(plugin, "BungeeCord");
+        this.plugin = plugin;
     }
 
     @Override
@@ -23,9 +24,5 @@ public final class ConnectActionParser implements ActionParser<JsonPrimitive> {
         dataOutput.writeUTF(primitive.getAsString());
         final var bytes = dataOutput.toByteArray();
         return session -> session.player().sendPluginMessage(plugin, "BungeeCord", bytes);
-    }
-
-    static {
-        plugin.getServer().getMessenger().registerOutgoingPluginChannel(plugin, "BungeeCord");
     }
 }
