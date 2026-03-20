@@ -85,7 +85,7 @@ public sealed interface Interface permits SimpleInterface, PaginatedInterface {
      *
      * @param player the player to open the interface for
      * @param holder the state holder to preserve the session state of
-     * @since 0.3.0
+     * @since 0.5.0
      */
     void open(Player player, StateHolder holder);
 
