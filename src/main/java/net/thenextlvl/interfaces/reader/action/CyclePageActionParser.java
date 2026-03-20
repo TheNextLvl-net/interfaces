@@ -18,7 +18,7 @@ public final class CyclePageActionParser implements ClickActionParser<JsonPrimit
         final var expression = primitive.getAsString();
         return clickContext -> clickContext.paginatedSession().ifPresent(session -> {
             final var value = (int) ArithmeticsParser.parser().evaluate(expression, clickContext);
-            session.page(Math.clamp(session.currentPage() + value, 0, session.pageCount() - 1));
+            session.setPage(Math.clamp(session.getCurrentPage() + value, 0, session.getPageCount() - 1));
         });
     }
 }

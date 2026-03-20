@@ -22,10 +22,10 @@ public sealed interface PaginatedSession extends InterfaceSession permits Simple
      * Returns the current page of the paginated interface.
      *
      * @return the current page
-     * @since 0.4.0
+     * @since 0.5.0
      */
     @Contract(pure = true)
-    int currentPage();
+    int getCurrentPage();
 
     /**
      * Returns the size of a page in the paginated interface.
@@ -33,27 +33,27 @@ public sealed interface PaginatedSession extends InterfaceSession permits Simple
      * This is the number of items that can be displayed on a single page.
      *
      * @return the page size
-     * @since 0.3.0
+     * @since 0.5.0
      */
     @Contract(pure = true)
-    int pageSize();
+    int getPageSize();
 
     /**
      * Returns the total number of pages in the paginated interface.
      *
      * @return the total number of pages
-     * @since 0.3.0
+     * @since 0.5.0
      */
     @Contract(pure = true)
-    int pageCount();
+    int getPageCount();
 
     /**
      * Moves to a specific page in the paginated interface.
      *
      * @param page the page number to move to
      * @return {@code true} if the page was changed, {@code false} otherwise
-     * @since 0.3.0
+     * @since 0.5.0
      */
     @Contract(mutates = "this")
-    boolean page(@Range(from = 0, to = Integer.MAX_VALUE) int page);
+    boolean setPage(@Range(from = 0, to = Integer.MAX_VALUE) int page);
 }

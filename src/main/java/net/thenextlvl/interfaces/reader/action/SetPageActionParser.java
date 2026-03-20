@@ -18,7 +18,7 @@ public final class SetPageActionParser implements ClickActionParser<JsonPrimitiv
         final var expression = primitive.getAsString();
         return clickContext -> clickContext.paginatedSession().ifPresent(session -> {
             final var value = (int) ArithmeticsParser.parser().evaluate(expression, clickContext);
-            session.page(Math.clamp(value, 0, session.pageCount() - 1));
+            session.setPage(Math.clamp(value, 0, session.getPageCount() - 1));
         });
     }
 }

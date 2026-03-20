@@ -92,23 +92,23 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
         }
 
         @Override
-        public int currentPage() {
+        public int getCurrentPage() {
             return page;
         }
 
         @Override
-        public int pageSize() {
+        public int getPageSize() {
             return getInterface().contentSlots.length;
         }
 
         @Override
-        public int pageCount() {
-            return Math.max(1, (int) Math.ceil((double) content.size() / pageSize()));
+        public int getPageCount() {
+            return Math.max(1, (int) Math.ceil((double) content.size() / getPageSize()));
         }
 
         @Override
-        public boolean page(final int page) {
-            if (page == this.page || page < 0 || page >= pageCount()) return false;
+        public boolean setPage(final int page) {
+            if (page == this.page || page < 0 || page >= getPageCount()) return false;
             this.page = page;
             refresh();
             return true;
@@ -128,10 +128,10 @@ final class SimplePaginatedInterface<T> extends SimpleInterface implements Pagin
 
         private void updateContentItems() {
             this.content = List.copyOf(getInterface().contentSupplier.get());
-            final var pages = pageCount();
+            final var pages = getPageCount();
             if (page >= pages) page = Math.max(0, pages - 1);
 
-            final var offset = page * pageSize();
+            final var offset = page * getPageSize();
             final var paginated = getInterface();
             for (var i = 0; i < paginated.contentSlots.length; i++) {
                 final var viewSlot = paginated.contentSlots[i];
