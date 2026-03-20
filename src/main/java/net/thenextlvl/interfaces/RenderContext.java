@@ -1,5 +1,6 @@
 package net.thenextlvl.interfaces;
 
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Contract;
 
 import java.util.Optional;
@@ -9,7 +10,7 @@ import java.util.Optional;
  *
  * @since 0.1.0
  */
-public sealed interface RenderContext permits ClickContext, SimpleRenderContext {
+public sealed interface RenderContext extends StateHolder permits ClickContext, SimpleRenderContext {
     /**
      * Returns the session of the interface that triggered this event.
      *
@@ -27,6 +28,15 @@ public sealed interface RenderContext permits ClickContext, SimpleRenderContext 
      */
     @Contract(pure = true)
     Optional<PaginatedSession> paginatedSession();
+
+    /**
+     * Returns the player corresponding to this context.
+     *
+     * @return the player
+     * @since 0.5.0
+     */
+    @Contract(pure = true)
+    Player player();
 
     /**
      * Returns the index of the item inside the interface.
