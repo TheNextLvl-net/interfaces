@@ -16,10 +16,8 @@ import org.jspecify.annotations.Nullable;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -114,8 +112,9 @@ non-sealed class SimpleInterface implements Interface {
     }
 
     @Override
-    public void open(final Player player, final InterfaceSession existing) {
-        open(player, ((Session) existing).state);
+    public void open(Player player, StateHolder holder) {
+        var state = holder instanceof RenderContext context ? context.session() : holder;
+        open(player, ((SimpleStateHolder) state).state);
     }
 
     @Override
@@ -174,17 +173,16 @@ non-sealed class SimpleInterface implements Interface {
     ) {
     }
 
-    public static sealed class Session implements InterfaceSession permits SimplePaginatedInterface.Session {
-        protected final Map<String, @Nullable Object> state;
+    public static sealed class Session extends SimpleStateHolder implements InterfaceSession permits SimplePaginatedInterface.Session {
         private final SimpleInterface interface_;
         private final InventoryView view;
         private final Player player;
 
         Session(final Player player, final InventoryView view, final SimpleInterface interface_, final Map<String, @Nullable Object> state) {
+            super(state);
             this.interface_ = interface_;
             this.player = player;
             this.view = view;
-            this.state = state;
         }
 
         @Override
@@ -201,58 +199,6 @@ non-sealed class SimpleInterface implements Interface {
         @Override
         public final InventoryView view() {
             return view;
-        }
-
-        @Override
-        public final <T> T state(final String key, final Class<T> type, final T fallback) {
-            final var value = state.get(key);
-            return type.isInstance(value) ? type.cast(value) : fallback;
-        }
-
-        @Override
-        public final <T> Optional<T> state(final String key, final Class<T> type) {
-            return Optional.ofNullable(state.get(key)).filter(type::isInstance).map(type::cast);
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public final <T> @Nullable T state(final String key, final @Nullable T value) {
-            return (T) state.put(key, value);
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public @Nullable <T> T stateIfAbsent(final String key, @Nullable final T value) {
-            return (T) state.putIfAbsent(key, value);
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public final <T> @Nullable T removeState(final String key) {
-            return (T) state.remove(key);
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public final @Nullable <T> T computeState(final String key, final BiFunction<String, @Nullable T, @Nullable T> remappingFunction) {
-            return (T) state.compute(key, (s, o) -> remappingFunction.apply(s, (T) o));
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public final @Nullable <T> T computeStateIfAbsent(final String key, final Function<String, @Nullable T> remappingFunction) {
-            return (T) state.computeIfAbsent(key, remappingFunction);
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public final <T> @Nullable T computeStateIfPresent(final String key, final BiFunction<String, T, @Nullable T> remappingFunction) {
-            return (T) state.computeIfPresent(key, (s, o) -> remappingFunction.apply(s, (T) o));
-        }
-
-        @Override
-        public final boolean hasState(final String key) {
-            return state.containsKey(key);
         }
 
         @Override
