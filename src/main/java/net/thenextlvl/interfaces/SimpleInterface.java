@@ -112,8 +112,8 @@ non-sealed class SimpleInterface implements Interface {
     }
 
     @Override
-    public void open(Player player, StateHolder holder) {
-        var state = holder instanceof RenderContext context ? context.session() : holder;
+    public void open(final Player player, final StateHolder holder) {
+        final var state = holder instanceof final RenderContext context ? context.session() : holder;
         open(player, ((SimpleStateHolder) state).state);
     }
 

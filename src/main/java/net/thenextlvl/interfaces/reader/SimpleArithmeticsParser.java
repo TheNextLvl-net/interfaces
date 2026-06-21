@@ -11,17 +11,17 @@ final class SimpleArithmeticsParser implements ArithmeticsParser {
     }
 
     @Override
-    public double evaluate(String expression, RenderContext context) {
+    public double evaluate(final String expression, final RenderContext context) {
         return evaluate(parse(expression, context));
     }
 
     @Override
-    public double evaluate(String compiled) {
+    public double evaluate(final String compiled) {
         return parseExpression(compiled, new int[]{0});
     }
 
     @Override
-    public String parse(String expression, RenderContext context) {
+    public String parse(final String expression, final RenderContext context) {
         return expression
                 .replace(" ", "")
                 .toLowerCase(Locale.ROOT)

@@ -64,47 +64,47 @@ non-sealed class SimpleRenderContext implements RenderContext {
     }
 
     @Override
-    public @Nullable <T> T getState(String key, Class<T> type, @Nullable T fallback) {
+    public @Nullable <T> T getState(final String key, final Class<T> type, @Nullable final T fallback) {
         return session.getState(key, type, fallback);
     }
 
     @Override
-    public <T> Optional<T> getState(String key, Class<T> type) {
+    public <T> Optional<T> getState(final String key, final Class<T> type) {
         return session.getState(key, type);
     }
 
     @Override
-    public @Nullable <T> T setState(String key, @Nullable T value) {
+    public @Nullable <T> T setState(final String key, @Nullable final T value) {
         return session.setState(key, value);
     }
 
     @Override
-    public @Nullable <T> T setStateIfAbsent(String key, @Nullable T value) {
+    public @Nullable <T> T setStateIfAbsent(final String key, @Nullable final T value) {
         return session.setStateIfAbsent(key, value);
     }
 
     @Override
-    public @Nullable <T> T removeState(String key) {
+    public @Nullable <T> T removeState(final String key) {
         return session.removeState(key);
     }
 
     @Override
-    public @Nullable <T> T computeState(String key, BiFunction<String, @Nullable T, @Nullable T> remappingFunction) {
+    public @Nullable <T> T computeState(final String key, final BiFunction<String, @Nullable T, @Nullable T> remappingFunction) {
         return session.computeState(key, remappingFunction);
     }
 
     @Override
-    public @Nullable <T> T computeStateIfAbsent(String key, Function<String, @Nullable T> remappingFunction) {
+    public @Nullable <T> T computeStateIfAbsent(final String key, final Function<String, @Nullable T> remappingFunction) {
         return session.computeStateIfAbsent(key, remappingFunction);
     }
 
     @Override
-    public @Nullable <T> T computeStateIfPresent(String key, BiFunction<String, T, @Nullable T> remappingFunction) {
+    public @Nullable <T> T computeStateIfPresent(final String key, final BiFunction<String, T, @Nullable T> remappingFunction) {
         return session.computeStateIfPresent(key, remappingFunction);
     }
 
     @Override
-    public boolean hasState(String key) {
+    public boolean hasState(final String key) {
         return session.hasState(key);
     }
 }
