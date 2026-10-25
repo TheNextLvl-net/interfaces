@@ -37,6 +37,7 @@ public final class ClickTypeConditionParser implements ClickConditionParser<Json
             Map.entry("border_left", clickType -> clickType == ClickType.WINDOW_BORDER_LEFT),
             Map.entry("border_right", clickType -> clickType == ClickType.WINDOW_BORDER_RIGHT),
             Map.entry("middle", clickType -> clickType == ClickType.MIDDLE)
+            // todo: keyboard click 0-9
     );
 
     private ClickTypeConditionParser() {
@@ -57,6 +58,6 @@ public final class ClickTypeConditionParser implements ClickConditionParser<Json
                 .map(clickTypePredicate -> invert ? clickTypePredicate.negate() : clickTypePredicate)
                 .orElseThrow(() -> new ParserException("Unknown click type: %s", key));
 
-        return clickContext -> type.test(clickContext.clickType());
+        return clickContext -> type.test(clickContext.click().type());
     }
 }

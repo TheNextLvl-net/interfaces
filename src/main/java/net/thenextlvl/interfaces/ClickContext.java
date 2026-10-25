@@ -1,6 +1,5 @@
 package net.thenextlvl.interfaces;
 
-import org.bukkit.event.inventory.ClickType;
 import org.jetbrains.annotations.Contract;
 
 /**
@@ -10,11 +9,11 @@ import org.jetbrains.annotations.Contract;
  */
 public sealed interface ClickContext extends RenderContext permits SimpleClickContext {
     /**
-     * Returns the type of click that triggered this event.
+     * Returns the click that triggered this event.
      *
-     * @return the type of click
-     * @since 0.2.0
+     * @return the click
+     * @since 0.6.0
      */
     @Contract(pure = true)
-    ClickType clickType();
+    Click click();
 }

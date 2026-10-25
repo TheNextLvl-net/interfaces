@@ -1,7 +1,6 @@
 package net.thenextlvl.interfaces;
 
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.ClickType;
 import org.jetbrains.annotations.Contract;
 
 import java.util.function.BiConsumer;
@@ -43,11 +42,11 @@ public interface ClickAction {
      *
      * @param action the action to perform
      * @return a {@code ClickAction} that performs the given action
-     * @since 0.1.0
+     * @since 0.6.0
      */
     @Contract(value = "_ -> new", pure = true)
-    static ClickAction of(final BiConsumer<Player, ClickType> action) {
-        return context -> action.accept(context.player(), context.clickType());
+    static ClickAction of(final BiConsumer<Player, Click> action) {
+        return context -> action.accept(context.player(), context.click());
     }
 
     /**

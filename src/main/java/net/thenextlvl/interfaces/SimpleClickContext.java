@@ -1,9 +1,7 @@
 package net.thenextlvl.interfaces;
 
-import org.bukkit.event.inventory.ClickType;
-
 final class SimpleClickContext extends SimpleRenderContext implements ClickContext {
-    private final ClickType clickType;
+    private final Click click;
 
     public SimpleClickContext(
             final InterfaceSession session,
@@ -11,14 +9,14 @@ final class SimpleClickContext extends SimpleRenderContext implements ClickConte
             final int row,
             final int column,
             final int slot,
-            final ClickType clickType
+            final Click click
     ) {
         super(session, index, row, column, slot);
-        this.clickType = clickType;
+        this.click = click;
     }
 
     @Override
-    public ClickType clickType() {
-        return clickType;
+    public Click click() {
+        return click;
     }
 }

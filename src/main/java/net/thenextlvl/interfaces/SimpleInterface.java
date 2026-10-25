@@ -157,7 +157,7 @@ non-sealed class SimpleInterface implements Interface {
                 item.row(),
                 item.column(),
                 slot,
-                event.getClick()
+                SimpleClick.of(event)
         );
         item.action().click(context);
     }
@@ -240,7 +240,7 @@ non-sealed class SimpleInterface implements Interface {
                     item.row(),
                     item.column(),
                     slot,
-                    event.getClick()
+                    SimpleClick.of(event)
             );
             item.action().click(context);
         }
